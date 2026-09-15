@@ -61,18 +61,25 @@ export default function Discover({
       <div>
         <div className="flex gap-2 mb-4">
           <Button 
+            variant={tab === 'upcoming' ? 'default' : 'secondary'} 
+            onClick={() => setTab('upcoming')}
+            className="rounded-full px-5"
+          >
+            Upcoming
+          </Button>
+          <Button 
             variant={tab === 'live' ? 'default' : 'secondary'} 
             onClick={() => setTab('live')}
             className="rounded-full px-5"
           >
-            Live & Upcoming
+            Live
           </Button>
           <Button 
             variant={tab === 'completed' ? 'default' : 'secondary'} 
             onClick={() => setTab('completed')}
             className="rounded-full px-5"
           >
-            Past Results
+            Completed
           </Button>
         </div>
         
@@ -81,14 +88,18 @@ export default function Discover({
         ) : (
           <div className="mt-3 flex flex-col gap-3">
             {(() => {
-              const displayRounds = tab === 'live' 
+              const displayRounds = tab === 'upcoming'
                 ? rounds.filter(r => r.status === 'OPEN')
-                : rounds.filter(r => r.status === 'COMPLETED')
+                : tab === 'live'
+                ? rounds.filter(r => r.status === 'IN_PROGRESS' || r.status === 'SCORING')
+                : rounds.filter(r => r.status === 'COMPLETED' || r.status === 'AWAITING_PAYOUT')
               
               if (displayRounds.length === 0) {
                 return (
                   <p className="text-sm text-muted-foreground text-center py-8">
-                    {tab === 'live' ? 'No open rounds. Create one!' : 'No completed rounds yet.'}
+                    {tab === 'upcoming' ? 'No upcoming rounds right now. Create one!' : 
+                     tab === 'live' ? 'No live games happening right now.' : 
+                     'No completed rounds yet.'}
                   </p>
                 )
               }
