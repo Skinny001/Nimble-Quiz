@@ -35,6 +35,15 @@ export default function Lobby({
   onStart, onCopyInvite, onBack, onViewResults, onDeleteRound,
 }: LobbyProps) {
   const [copied, setCopied] = useState(false)
+  
+  const isDone = detail?.status === 'AWAITING_PAYOUT' || detail?.status === 'COMPLETED'
+  
+  // If round finished, go to results safely via side effect
+  useEffect(() => {
+    if (isDone) {
+      onViewResults()
+    }
+  }, [isDone, onViewResults])
 
   if (!detail || detail.id !== selectedId) return (
     <div className="mx-auto w-full max-w-xl p-4 sm:p-6 text-center text-muted-foreground">
@@ -45,14 +54,6 @@ export default function Lobby({
   const confirmed = detail.entries.filter((e) => e.stakeStatus === 'CONFIRMED')
   const isHost = detail.isHost
   const inProgress = detail.status === 'IN_PROGRESS' || detail.status === 'SCORING'
-  const isDone = detail.status === 'AWAITING_PAYOUT' || detail.status === 'COMPLETED'
-
-  // If round finished, go to results safely via side effect
-  useEffect(() => {
-    if (isDone) {
-      onViewResults()
-    }
-  }, [isDone, onViewResults])
 
   if (isDone) {
     return <p className="p-4 text-sm text-muted-foreground">Round complete — loading results…</p>
