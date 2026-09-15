@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
+import { computeLeaderboard, determineWinners, computePayouts } from '@/lib/scoring'
 
 export async function POST(
   req: NextRequest,
@@ -86,43 +87,4 @@ export async function POST(
     console.error('Finish round error:', error)
     return NextResponse.json({ error: 'Failed to finish round' }, { status: 500 })
   }
-}
-
-function computeLeaderboard(entries: any[]) {
-  return entries.map(entry => {
-    const correctCount = entry.answers.filter((a: any) => a.isCorrect).length
-    const totalTime = entry.answers.reduce((sum: number, a: any) => sum + a.responseTimeMs, 0)
-    return {
-      playerId: entry.playerId,
-      player: entry.player,
-      correctCount,
-      totalTime,
-    }
-  }).sort((a, b) => {
-    if (b.correctCount !== a.correctCount) return b.correctCount - a.correctCount
-    return a.totalTime - b.totalTime
-  })
-}
-
-function determineWinners(leaderboard: any[], payoutRule: string) {
-  if (payoutRule === 'WINNER_TAKE_ALL') {
-    const topScore = leaderboard[0]?.correctCount || 0
-    return leaderboard.filter(p => p.correctCount === topScore)
-  }
-  return leaderboard.slice(0, 3)
-}
-
-function computePayouts(winners: any[], pot: number, payoutRule: string) {
-  if (payoutRule === 'WINNER_TAKE_ALL') {
-    const share = pot / winners.length
-    return winners.map(w => ({ recipientId: w.playerId, amount: share }))
-  }
-
-  const weights = [0.5, 0.3, 0.2]
-  const totalWeight = winners.reduce((sum, _, i) => sum + (weights[i] || 0), 0)
-
-  return winners.map((w, i) => ({
-    recipientId: w.playerId,
-    amount: Math.round((pot * (weights[i] || 0) / totalWeight) * 100) / 100,
-  }))
 }

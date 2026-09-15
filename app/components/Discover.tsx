@@ -25,6 +25,7 @@ export default function Discover({
   onCreateClick, onRoundClick,
 }: DiscoverProps) {
   const [greeting, setGreeting] = useState('Good morning, quizzer')
+  const [tab, setTab] = useState<'live' | 'completed'>('live')
 
   useEffect(() => {
     const hour = new Date().getHours()
@@ -58,16 +59,42 @@ export default function Discover({
       )}
 
       <div>
-        <h2 className="text-lg font-semibold">Open rounds</h2>
+        <div className="flex gap-2 mb-4">
+          <Button 
+            variant={tab === 'live' ? 'default' : 'secondary'} 
+            onClick={() => setTab('live')}
+            className="rounded-full px-5"
+          >
+            Live & Upcoming
+          </Button>
+          <Button 
+            variant={tab === 'completed' ? 'default' : 'secondary'} 
+            onClick={() => setTab('completed')}
+            className="rounded-full px-5"
+          >
+            Past Results
+          </Button>
+        </div>
+        
         {loadingRounds ? (
           <p className="mt-2 text-sm text-muted-foreground">Loading…</p>
         ) : (
           <div className="mt-3 flex flex-col gap-3">
-            {rounds.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-8">No open rounds. Create one!</p>
-            )}
-            {rounds.map((r) => {
-              const isMyRound = !!(address && r.host?.nimiqAddress === address)
+            {(() => {
+              const displayRounds = tab === 'live' 
+                ? rounds.filter(r => r.status !== 'COMPLETED')
+                : rounds.filter(r => r.status === 'COMPLETED')
+              
+              if (displayRounds.length === 0) {
+                return (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    {tab === 'live' ? 'No open rounds. Create one!' : 'No completed rounds yet.'}
+                  </p>
+                )
+              }
+              
+              return displayRounds.map((r) => {
+                const isMyRound = !!(address && r.host?.nimiqAddress === address)
               return (
                 <article
                   key={r.id}
@@ -85,13 +112,15 @@ export default function Discover({
                   </div>
                   <Button
                     onClick={() => onRoundClick(r, isMyRound)}
+                    variant={r.status === 'COMPLETED' ? 'outline' : 'default'}
                     className="w-full sm:w-auto"
                   >
-                    {isMyRound ? 'Manage' : 'View'} <ChevronRight className="ml-1 size-4" />
+                    {r.status === 'COMPLETED' ? 'Results' : (isMyRound ? 'Manage' : 'View')} <ChevronRight className="ml-1 size-4" />
                   </Button>
                 </article>
               )
-            })}
+            })
+          })()}
           </div>
         )}
       </div>

@@ -17,7 +17,7 @@ interface PlayViewProps {
   detail: any;
   leaderboard: any[];
   busy: boolean;
-  onAnswer: (expired: boolean) => void;
+  onAnswer: (expired: boolean, forcedOpt?: number) => void;
 }
 
 export default function PlayView({
@@ -56,8 +56,13 @@ export default function PlayView({
           {opts.map((a: string, i: number) => (
             <button
               key={i}
-              onClick={() => setSelectedOpt(i)}
-              className={`rounded-xl border p-4 text-left text-sm font-medium transition ${
+              onClick={() => {
+                if (busy) return
+                setSelectedOpt(i)
+                onAnswer(false, i)
+              }}
+              disabled={busy}
+              className={`relative rounded-xl border p-4 text-left text-sm font-medium transition overflow-hidden ${
                 selectedOpt === i
                   ? 'border-primary bg-primary/10 text-primary'
                   : 'border-border hover:border-primary hover:bg-primary/5'
@@ -71,10 +76,13 @@ export default function PlayView({
             </button>
           ))}
         </div>
-        <Button disabled={selectedOpt === null || busy} onClick={() => onAnswer(false)} className="mt-6 h-12 w-full">
-          {busy ? 'Submitting…' : 'Lock answer'}
-          <ChevronRight className="ml-2 size-4" />
-        </Button>
+        
+        {busy && (
+          <div className="mt-6 flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground animate-pulse">
+            <Zap className="size-4 text-primary" />
+            Submitting answer...
+          </div>
+        )}
       </div>
 
       {leaderboard.length > 0 && (

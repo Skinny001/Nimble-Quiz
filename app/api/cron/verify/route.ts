@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyPendingStakes } from '@/lib/workers/stakeVerification'
 import { verifyPendingPayouts } from '@/lib/workers/payoutVerification'
+import { verifyAbandonedRounds } from '@/lib/workers/abandonedVerification'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +17,7 @@ export async function GET(req: NextRequest) {
     await Promise.all([
       verifyPendingStakes(),
       verifyPendingPayouts(),
+      verifyAbandonedRounds(),
     ])
 
     return NextResponse.json({ success: true, timestamp: new Date().toISOString() })

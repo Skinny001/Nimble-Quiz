@@ -123,7 +123,7 @@ function Page() {
     setLoadingRounds(true)
     setError(null)
     try {
-      const data: any = await api.rounds.list('OPEN')
+      const data: any = await api.rounds.list()
       setRounds(Array.isArray(data) ? data : [])
     } catch (e: any) {
       setError(e.message)
@@ -271,15 +271,17 @@ function Page() {
     return () => { active = false }
   }, [view, selectedId, loadLeaderboard])
 
-  const handleAnswer = async (expired = false) => {
+  const handleAnswer = async (expired = false, forcedOpt?: number) => {
     if (!selectedId || !sessionToken || !currentQ || busy) return
-    const opt = expired ? 0 : selectedOpt
+    const opt = expired ? -1 : (forcedOpt !== undefined ? forcedOpt : selectedOpt)
     if (opt === null || opt === undefined) return
     setBusy(true)
     try {
       await api.rounds.submitAnswer(selectedId, currentQ.id, opt, sessionToken)
-      await loadLeaderboard()
-      await loadQuestion()
+      await Promise.all([
+        loadLeaderboard().catch(() => {}),
+        loadQuestion().catch(() => {})
+      ])
     } catch (e: any) {
       setError(e.message)
     } finally {

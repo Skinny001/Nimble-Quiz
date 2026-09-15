@@ -3,7 +3,7 @@
 import { ArrowLeft, Play, Check, Clock3, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatAddress } from '@/lib/nimiq'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 type RoundDetail = {
   id: string; title: string; category: string; status: string;
@@ -47,9 +47,14 @@ export default function Lobby({
   const inProgress = detail.status === 'IN_PROGRESS' || detail.status === 'SCORING'
   const isDone = detail.status === 'AWAITING_PAYOUT' || detail.status === 'COMPLETED'
 
-  // If round finished, go to results
+  // If round finished, go to results safely via side effect
+  useEffect(() => {
+    if (isDone) {
+      onViewResults()
+    }
+  }, [isDone, onViewResults])
+
   if (isDone) {
-    Promise.resolve().then(() => onViewResults())
     return <p className="p-4 text-sm text-muted-foreground">Round complete — loading results…</p>
   }
 
