@@ -25,7 +25,7 @@ export default function Discover({
   onCreateClick, onRoundClick,
 }: DiscoverProps) {
   const [greeting, setGreeting] = useState('Good morning, quizzer')
-  const [tab, setTab] = useState<'live' | 'completed'>('live')
+  const [tab, setTab] = useState<'upcoming' | 'live' | 'completed'>('live')
 
   useEffect(() => {
     const hour = new Date().getHours()
