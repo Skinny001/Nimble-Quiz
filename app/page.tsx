@@ -378,6 +378,7 @@ function Page() {
     try {
       const created: any = await api.rounds.create(data, sessionToken)
       setSelectedId(created.id)
+      setDetail(null)
       setView('lobby')
     } catch (e: any) {
       setError(e.message)
@@ -445,7 +446,7 @@ function Page() {
                 address={address}
                 error={error}
                 onCreateClick={() => setView('create')}
-                onRoundClick={(r, isHost) => { setSelectedId(r.id); setView(isHost ? 'lobby' : 'detail') }}
+                onRoundClick={(r, isHost) => { setSelectedId(r.id); setDetail(null); setView(isHost ? 'lobby' : 'detail') }}
               />
             )}
             {view === 'create' && (

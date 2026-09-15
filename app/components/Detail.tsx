@@ -30,7 +30,7 @@ export default function Detail({
   detail, selectedId, userId, sessionToken, sdkState,
   busy, error, onBack, onJoin, onGoToLobby,
 }: DetailProps) {
-  if (!detail) return (
+  if (!detail || detail.id !== selectedId) return (
     <div className="mx-auto w-full max-w-xl p-4 sm:p-6 text-center text-muted-foreground">
       Loading round…
     </div>
