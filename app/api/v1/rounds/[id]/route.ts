@@ -31,6 +31,15 @@ export async function GET(
       return NextResponse.json({ error: 'Round not found' }, { status: 404 })
     }
 
+    if (round.status === 'IN_PROGRESS' && round.startedAt) {
+      const elapsedMs = Date.now() - round.startedAt.getTime()
+      const totalDurationMs = round.questionCount * round.timePerQuestionSeconds * 1000
+      if (elapsedMs > totalDurationMs + 2000) {
+        round.status = 'SCORING'
+        await prisma.triviaRound.update({ where: { id }, data: { status: 'SCORING' } })
+      }
+    }
+
     const isHost = user?.id === round.hostId
     const userEntry = user ? round.entries.find(e => e.playerId === user.id) : null
 

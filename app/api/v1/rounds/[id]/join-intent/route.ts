@@ -19,7 +19,7 @@ export async function POST(
       return NextResponse.json({ error: 'Round not found' }, { status: 404 })
     }
 
-    if (round.status !== 'OPEN') {
+    if (round.status !== 'OPEN' && round.status !== 'IN_PROGRESS') {
       return NextResponse.json({ error: 'Round is not open for entry' }, { status: 400 })
     }
 

@@ -125,7 +125,7 @@ export default function Detail({
         return (
           <>
             <Button
-              disabled={busy || detail.status !== 'OPEN' || sdkState !== 'connected'}
+              disabled={busy || (detail.status !== 'OPEN' && detail.status !== 'IN_PROGRESS') || sdkState !== 'connected'}
               onClick={onJoin}
               className="mt-6 h-12 w-full"
             >

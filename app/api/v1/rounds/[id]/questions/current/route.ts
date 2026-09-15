@@ -36,6 +36,22 @@ export async function GET(
 
     const elapsedMs = Date.now() - round.startedAt.getTime()
     const msPerQuestion = round.timePerQuestionSeconds * 1000
+
+    if (elapsedMs < 0) {
+      return NextResponse.json({
+        isStarting: true,
+        question: {
+          id: 'starting',
+          prompt: 'Game starting soon... Get ready!',
+          options: [],
+          orderIndex: 0,
+          totalQuestions: round.questionCount,
+        },
+        timeRemaining: Math.ceil(Math.abs(elapsedMs) / 1000),
+        currentIndex: 0,
+      })
+    }
+
     const currentIndex = Math.floor(elapsedMs / msPerQuestion)
 
     if (currentIndex >= round.questions.length) {

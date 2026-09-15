@@ -79,46 +79,14 @@ export async function POST(
       return NextResponse.json({ error: `Need at least ${round.minPlayers} confirmed players` }, { status: 400 })
     }
 
-    const token = await getSessionToken()
-    let questions: TriviaQuestion[] = []
+    const startedAt = new Date(Date.now() + 3000) // 3-second buffer for players to sync
 
-    if (token) {
-      questions = await fetchQuestionsWithToken(
-        token,
-        round.category,
-        round.questionCount,
-        round.categoryMode
-      )
-    }
+    await prisma.triviaRound.update({
+      where: { id },
+      data: { status: 'IN_PROGRESS', startedAt },
+    })
 
-    // Fallback to hardcoded questions if OpenTDB fails or rate-limits
-    if (questions.length < round.questionCount) {
-      console.warn(`[start] OpenTDB failed to return ${round.questionCount} questions. Falling back to default bank.`)
-      questions = [...FALLBACK_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, round.questionCount)
-    }
-
-    if (questions.length < round.questionCount) {
-      return NextResponse.json({ error: 'Failed to fetch enough questions' }, { status: 500 })
-    }
-
-    // Use sequential transaction array to avoid PgBouncer timeouts
-    await prisma.$transaction([
-      prisma.question.createMany({
-        data: questions.map((q, i) => ({
-          roundId: id,
-          prompt: q.prompt,
-          options: q.options,
-          correctOptionIndex: q.correctIndex,
-          orderIndex: i,
-        })),
-      }),
-      prisma.triviaRound.update({
-        where: { id },
-        data: { status: 'IN_PROGRESS', startedAt: new Date() },
-      }),
-    ])
-
-    return NextResponse.json({ success: true, questionCount: questions.length })
+    return NextResponse.json({ success: true, startedAt })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -126,112 +94,4 @@ export async function POST(
     console.error('Start round error:', error)
     return NextResponse.json({ error: 'Failed to start round' }, { status: 500 })
   }
-}
-
-async function getSessionToken(): Promise<string | null> {
-  try {
-    const res = await fetch(`${OPENTDB_BASE}/api_token.php?command=request`)
-    const data = await res.json()
-    if (data.response_code === 0 && data.token) {
-      return data.token
-    }
-    console.error('Failed to get session token:', data)
-    return null
-  } catch (error) {
-    console.error('Session token request error:', error)
-    return null
-  }
-}
-
-async function fetchQuestionsWithToken(
-  token: string,
-  category: string,
-  count: number,
-  mode: string
-): Promise<TriviaQuestion[]> {
-  try {
-    let categoryIds: number[]
-
-    if (mode === 'MIXED') {
-      categoryIds = Object.values(CATEGORIES)
-    } else {
-      const catId = CATEGORIES[category] || 9
-      categoryIds = [catId]
-    }
-
-    const allQuestions: TriviaQuestion[] = []
-
-    for (const catId of categoryIds) {
-      const remaining = count - allQuestions.length
-      if (remaining <= 0) break
-
-      const params = new URLSearchParams({
-        amount: String(Math.min(remaining, 50)),
-        token,
-        difficulty: 'medium',
-        type: 'multiple',
-      })
-
-      if (mode === 'SINGLE') {
-        params.set('category', String(catId))
-      }
-
-      const url = `${OPENTDB_BASE}/api.php?${params.toString()}`
-      const res = await fetch(url)
-      const data: {
-        response_code: number
-        results?: Array<{
-          question: string
-          correct_answer: string
-          incorrect_answers: string[]
-          category: string
-        }>
-      } = await res.json()
-
-      if (data.response_code === 1) {
-        break
-      }
-      if (data.response_code === 3) {
-        console.warn('Token not found, getting new token')
-        return []
-      }
-      if (data.response_code === 4) {
-        console.warn('Token exhausted, no more unique questions available')
-        break
-      }
-
-      if (data.response_code === 0 && data.results) {
-        for (const q of data.results) {
-          const decodedCorrect = decodeHtml(q.correct_answer)
-          const decodedIncorrect = q.incorrect_answers.map(decodeHtml)
-          const options = [...decodedIncorrect, decodedCorrect]
-            .sort(() => Math.random() - 0.5)
-
-          allQuestions.push({
-            prompt: decodeHtml(q.question),
-            options,
-            correctIndex: options.findIndex(o => o === decodedCorrect),
-            category: decodeHtml(q.category),
-          })
-
-          if (allQuestions.length >= count) break
-        }
-      }
-    }
-
-    return allQuestions.slice(0, count)
-  } catch (error) {
-    console.error('Fetch questions error:', error)
-    return []
-  }
-}
-
-function decodeHtml(html: string): string {
-  return html
-    .replace(/"/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&/g, '&')
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
 }
