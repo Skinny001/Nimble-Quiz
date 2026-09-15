@@ -273,15 +273,44 @@ function Page() {
   const handleJoin = async () => {
     if (!selectedId || !sessionToken || !detail) return
     setBusy(true); setError(null)
+    
+    let paymentSent = false
+    let hash = ''
+
     try {
       const intent: any = await api.rounds.joinIntent(selectedId, sessionToken)
       const txHash: any = await sendStakePayment(intent.recipientAddress, Number(detail.stakeAmount), selectedId)
-      const hash = typeof txHash === 'string' ? txHash : (txHash?.hash ?? String(txHash))
-      await api.rounds.joinConfirm(selectedId, hash, sessionToken)
+      hash = typeof txHash === 'string' ? txHash : (txHash?.hash ?? String(txHash))
+      paymentSent = true
+
+      // Retry logic for mobile browsers returning from background
+      let confirmed = false
+      for (let i = 0; i < 3; i++) {
+        try {
+          await api.rounds.joinConfirm(selectedId, hash, sessionToken)
+          confirmed = true
+          break
+        } catch (err) {
+          console.warn('joinConfirm attempt failed:', err)
+          await new Promise(r => setTimeout(r, 2000))
+        }
+      }
+      
+      if (!confirmed) {
+        console.error('All joinConfirm attempts failed, relying on background cron.')
+      }
+
       await loadDetail(selectedId)
       setView('lobby')
     } catch (e: any) {
-      setError(e.message ?? 'Join failed')
+      if (!paymentSent) {
+        setError(e.message ?? 'Join failed')
+      } else {
+        // Payment was sent but something crashed. Still move to lobby to poll.
+        console.error('Error after payment sent:', e)
+        await loadDetail(selectedId).catch(() => {})
+        setView('lobby')
+      }
     } finally {
       setBusy(false)
     }
