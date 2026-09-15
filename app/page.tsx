@@ -147,11 +147,17 @@ function Page() {
   }, [sessionToken])
 
   useEffect(() => {
-    if (sessionToken) {
-      loadNotifications()
-      const t = setInterval(loadNotifications, 10000)
-      return () => clearInterval(t)
+    let active = true
+    const poll = async () => {
+      if (!active) return
+      await loadNotifications().catch(() => {})
+      if (active) setTimeout(poll, 10000)
     }
+    
+    if (sessionToken) {
+      poll()
+    }
+    return () => { active = false }
   }, [sessionToken, loadNotifications])
 
   const handleMarkAllRead = async () => {
@@ -182,8 +188,14 @@ function Page() {
   // lobby polling
   useEffect(() => {
     if (view !== 'lobby' || !selectedId) return
-    const t = setInterval(() => loadDetail(selectedId), 3000)
-    return () => clearInterval(t)
+    let active = true
+    const poll = async () => {
+      if (!active) return
+      await loadDetail(selectedId).catch(() => {})
+      if (active) setTimeout(poll, 3000)
+    }
+    const t = setTimeout(poll, 3000)
+    return () => { active = false; clearTimeout(t) }
   }, [view, selectedId, loadDetail])
 
   // auto-advance lobby -> play when IN_PROGRESS (players only, not the host)
@@ -247,11 +259,16 @@ function Page() {
   }, [selectedId])
 
   useEffect(() => {
+    let active = true
     if ((view === 'play' || view === 'results' || view === 'lobby') && selectedId) {
-      loadLeaderboard()
-      const t = setInterval(loadLeaderboard, 3000)
-      return () => clearInterval(t)
+      const poll = async () => {
+        if (!active) return
+        await loadLeaderboard().catch(() => {})
+        if (active) setTimeout(poll, 3000)
+      }
+      poll()
     }
+    return () => { active = false }
   }, [view, selectedId, loadLeaderboard])
 
   const handleAnswer = async (expired = false) => {
