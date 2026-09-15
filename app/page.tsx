@@ -277,11 +277,18 @@ function Page() {
     if (opt === null || opt === undefined) return
     setBusy(true)
     try {
-      await api.rounds.submitAnswer(selectedId, currentQ.id, opt, sessionToken)
-      await Promise.all([
-        loadLeaderboard().catch(() => {}),
-        loadQuestion().catch(() => {})
-      ])
+      const res: any = await api.rounds.submitAnswer(selectedId, currentQ.id, opt, sessionToken)
+      
+      if (res.finished) {
+        await api.rounds.finish(selectedId, sessionToken).catch(() => {})
+        setView('results')
+      } else if (res.nextQuestion) {
+        setCurrentQ(res.nextQuestion)
+        setSelectedOpt(null)
+        setTimeLeft(detail?.timePerQuestionSeconds ?? 20)
+      } else {
+        await loadQuestion().catch(() => {})
+      }
     } catch (e: any) {
       setError(e.message)
     } finally {

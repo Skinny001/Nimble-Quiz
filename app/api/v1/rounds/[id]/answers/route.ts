@@ -72,10 +72,26 @@ export async function POST(
       await checkRoundComplete(id)
     }
 
+    const nextQuestion = await prisma.question.findFirst({
+      where: {
+        roundId: id,
+        answers: { none: { playerId: user.id } }
+      },
+      orderBy: { orderIndex: 'asc' }
+    })
+
     return NextResponse.json({
       success: true,
       isCorrect,
       responseTimeMs,
+      finished: !nextQuestion,
+      nextQuestion: nextQuestion ? {
+        id: nextQuestion.id,
+        prompt: nextQuestion.prompt,
+        options: nextQuestion.options,
+        orderIndex: nextQuestion.orderIndex,
+        totalQuestions: round.questionCount,
+      } : null,
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
