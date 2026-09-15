@@ -111,7 +111,7 @@ async function verifyStakeTransaction(
   roundId: string
 ): Promise<{ success: boolean; hardReject?: boolean; error?: string }> {
   try {
-    const response = await fetch(txUrl(txHash), { signal: AbortSignal.timeout(5000) })
+    const response = await fetch(txUrl(txHash), { signal: AbortSignal.timeout(2500) })
 
     // Tx not found or indexer unavailable — treat as "not indexed yet", not fraud.
     if (!response.ok) {

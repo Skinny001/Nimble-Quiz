@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyPendingStakes } from '@/lib/workers/stakeVerification'
 import { verifyPendingPayouts } from '@/lib/workers/payoutVerification'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET

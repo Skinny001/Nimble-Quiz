@@ -37,6 +37,19 @@ interface TriviaQuestion {
   category?: string
 }
 
+const FALLBACK_QUESTIONS: TriviaQuestion[] = [
+  { prompt: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Madrid"], correctIndex: 2 },
+  { prompt: "What is the largest planet in our solar system?", options: ["Mars", "Jupiter", "Saturn", "Earth"], correctIndex: 1 },
+  { prompt: "Which element has the chemical symbol 'O'?", options: ["Gold", "Oxygen", "Osmium", "Iron"], correctIndex: 1 },
+  { prompt: "What year did the Titanic sink?", options: ["1912", "1905", "1898", "1923"], correctIndex: 0 },
+  { prompt: "Who painted the Mona Lisa?", options: ["Vincent van Gogh", "Pablo Picasso", "Leonardo da Vinci", "Claude Monet"], correctIndex: 2 },
+  { prompt: "What is the hardest natural substance on Earth?", options: ["Gold", "Iron", "Diamond", "Platinum"], correctIndex: 2 },
+  { prompt: "Which planet is known as the Red Planet?", options: ["Venus", "Mars", "Jupiter", "Saturn"], correctIndex: 1 },
+  { prompt: "What is the smallest country in the world?", options: ["Monaco", "Vatican City", "San Marino", "Liechtenstein"], correctIndex: 1 },
+  { prompt: "How many continents are there?", options: ["5", "6", "7", "8"], correctIndex: 2 },
+  { prompt: "What is the largest ocean on Earth?", options: ["Atlantic Ocean", "Indian Ocean", "Arctic Ocean", "Pacific Ocean"], correctIndex: 3 }
+]
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -67,23 +80,30 @@ export async function POST(
     }
 
     const token = await getSessionToken()
-    if (!token) {
-      return NextResponse.json({ error: 'Failed to get session token from Open Trivia DB' }, { status: 500 })
+    let questions: TriviaQuestion[] = []
+
+    if (token) {
+      questions = await fetchQuestionsWithToken(
+        token,
+        round.category,
+        round.questionCount,
+        round.categoryMode
+      )
     }
 
-    const questions = await fetchQuestionsWithToken(
-      token,
-      round.category,
-      round.questionCount,
-      round.categoryMode
-    )
+    // Fallback to hardcoded questions if OpenTDB fails or rate-limits
+    if (questions.length < round.questionCount) {
+      console.warn(`[start] OpenTDB failed to return ${round.questionCount} questions. Falling back to default bank.`)
+      questions = [...FALLBACK_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, round.questionCount)
+    }
 
     if (questions.length < round.questionCount) {
       return NextResponse.json({ error: 'Failed to fetch enough questions' }, { status: 500 })
     }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.question.createMany({
+    // Use sequential transaction array to avoid PgBouncer timeouts
+    await prisma.$transaction([
+      prisma.question.createMany({
         data: questions.map((q, i) => ({
           roundId: id,
           prompt: q.prompt,
@@ -91,13 +111,12 @@ export async function POST(
           correctOptionIndex: q.correctIndex,
           orderIndex: i,
         })),
-      })
-
-      await tx.triviaRound.update({
+      }),
+      prisma.triviaRound.update({
         where: { id },
         data: { status: 'IN_PROGRESS' },
       })
-    })
+    ])
 
     return NextResponse.json({ success: true, questionCount: questions.length })
   } catch (error) {
