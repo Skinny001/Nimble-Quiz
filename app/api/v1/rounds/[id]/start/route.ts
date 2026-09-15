@@ -114,8 +114,8 @@ export async function POST(
       }),
       prisma.triviaRound.update({
         where: { id },
-        data: { status: 'IN_PROGRESS' },
-      })
+        data: { status: 'IN_PROGRESS', startedAt: new Date() },
+      }),
     ])
 
     return NextResponse.json({ success: true, questionCount: questions.length })

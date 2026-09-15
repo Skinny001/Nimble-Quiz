@@ -27,25 +27,37 @@ export async function GET(
       return NextResponse.json({ error: 'Not a confirmed participant' }, { status: 403 })
     }
 
-    if (round.status !== 'IN_PROGRESS') {
+    if (round.status !== 'IN_PROGRESS' || !round.startedAt) {
+      if (round.status === 'SCORING' || round.status === 'AWAITING_PAYOUT' || round.status === 'COMPLETED') {
+        return NextResponse.json({ finished: true })
+      }
       return NextResponse.json({ error: 'Round not in progress' }, { status: 400 })
     }
 
-    const answeredQuestionIds = new Set(round.answers.map(a => a.questionId))
-    const nextQuestion = round.questions.find(q => !answeredQuestionIds.has(q.id))
+    const elapsedMs = Date.now() - round.startedAt.getTime()
+    const msPerQuestion = round.timePerQuestionSeconds * 1000
+    const currentIndex = Math.floor(elapsedMs / msPerQuestion)
 
-    if (!nextQuestion) {
+    if (currentIndex >= round.questions.length) {
+      if (round.status === 'IN_PROGRESS') {
+        await prisma.triviaRound.update({ where: { id }, data: { status: 'SCORING' } })
+      }
       return NextResponse.json({ finished: true })
     }
 
+    const currentQuestion = round.questions[currentIndex]
+    const timeRemaining = Math.max(0, Math.ceil((msPerQuestion - (elapsedMs % msPerQuestion)) / 1000))
+
     return NextResponse.json({
       question: {
-        id: nextQuestion.id,
-        prompt: nextQuestion.prompt,
-        options: nextQuestion.options,
-        orderIndex: nextQuestion.orderIndex,
+        id: currentQuestion.id,
+        prompt: currentQuestion.prompt,
+        options: currentQuestion.options,
+        orderIndex: currentQuestion.orderIndex,
         totalQuestions: round.questionCount,
       },
+      timeRemaining,
+      currentIndex,
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {

@@ -40,7 +40,7 @@ export async function POST(
       return NextResponse.json({ error: 'Question not found' }, { status: 404 })
     }
 
-    const questionStartTime = Date.now()
+    const questionStartTime = round.startedAt ? round.startedAt.getTime() + (question.orderIndex * round.timePerQuestionSeconds * 1000) : Date.now()
     
     const existingAnswer = await prisma.answer.findUnique({
       where: { questionId_playerId: { questionId, playerId: user.id } },
@@ -64,34 +64,11 @@ export async function POST(
       },
     })
 
-    const allAnswered = await prisma.answer.count({
-      where: { roundId: id, playerId: user.id },
-    })
-
-    if (allAnswered >= round.questionCount) {
-      await checkRoundComplete(id)
-    }
-
-    const nextQuestion = await prisma.question.findFirst({
-      where: {
-        roundId: id,
-        answers: { none: { playerId: user.id } }
-      },
-      orderBy: { orderIndex: 'asc' }
-    })
-
     return NextResponse.json({
       success: true,
       isCorrect,
+      correctOptionIndex: question.correctOptionIndex,
       responseTimeMs,
-      finished: !nextQuestion,
-      nextQuestion: nextQuestion ? {
-        id: nextQuestion.id,
-        prompt: nextQuestion.prompt,
-        options: nextQuestion.options,
-        orderIndex: nextQuestion.orderIndex,
-        totalQuestions: round.questionCount,
-      } : null,
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {

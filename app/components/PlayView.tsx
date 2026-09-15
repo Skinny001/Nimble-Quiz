@@ -13,6 +13,7 @@ interface PlayViewProps {
   currentQ: CurrentQuestion | null;
   selectedOpt: number | null;
   setSelectedOpt: (opt: number | null) => void;
+  correctOptionIndex: number | null;
   timeLeft: number;
   detail: any;
   leaderboard: any[];
@@ -24,6 +25,7 @@ export default function PlayView({
   currentQ,
   selectedOpt,
   setSelectedOpt,
+  correctOptionIndex,
   timeLeft,
   detail,
   leaderboard,
@@ -53,28 +55,48 @@ export default function PlayView({
       <div className="rounded-xl border bg-card p-4 sm:p-6">
         <h1 className="text-lg sm:text-xl font-semibold">{currentQ.prompt}</h1>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {opts.map((a: string, i: number) => (
-            <button
-              key={i}
-              onClick={() => {
-                if (busy) return
-                setSelectedOpt(i)
-                onAnswer(false, i)
-              }}
-              disabled={busy}
-              className={`relative rounded-xl border p-4 text-left text-sm font-medium transition overflow-hidden ${
-                selectedOpt === i
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border hover:border-primary hover:bg-primary/5'
-              }`}
-            >
-              <span className="mr-2 flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary font-mono text-xs">
-                {String.fromCharCode(65 + i)}
-              </span>
-              {a}
-              {selectedOpt === i && <Check className="ml-auto size-4" />}
-            </button>
-          ))}
+          {opts.map((a: string, i: number) => {
+            let className = "relative flex items-center justify-between rounded-xl border p-4 text-left transition-all "
+            
+            if (correctOptionIndex !== null) {
+              if (i === correctOptionIndex) {
+                className += "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400 font-bold"
+              } else if (i === selectedOpt) {
+                className += "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400"
+              } else {
+                className += "opacity-50"
+              }
+            } else {
+              if (selectedOpt === i) {
+                className += "border-primary bg-primary/5 ring-1 ring-primary"
+              } else {
+                className += "hover:bg-secondary/50"
+              }
+            }
+
+            return (
+              <button
+                key={i}
+                disabled={busy || selectedOpt !== null}
+                onClick={() => {
+                  if (busy || selectedOpt !== null) return
+                  setSelectedOpt(i)
+                  onAnswer(false, i)
+                }}
+                className={className}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-secondary text-xs font-bold text-muted-foreground">
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  <span className="font-medium">{a}</span>
+                </div>
+                {correctOptionIndex !== null && i === correctOptionIndex && (
+                  <Check className="size-5 text-green-500" />
+                )}
+              </button>
+            )
+          })}
         </div>
         
         {busy && (

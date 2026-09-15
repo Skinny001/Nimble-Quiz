@@ -75,9 +75,11 @@ function Page() {
 
   // notifications
   const [notifications, setNotifications] = useState<any[]>([])
-  const [showNotifications, setShowNotifications] = useState(false)  // play
+  const [showNotifications, setShowNotifications] = useState(false)
+  // play
   const [currentQ, setCurrentQ] = useState<CurrentQuestion | null>(null)
   const [selectedOpt, setSelectedOpt] = useState<number | null>(null)
+  const [correctOptionIndex, setCorrectOptionIndex] = useState<number | null>(null)
   const [timeLeft, setTimeLeft] = useState(20)
   const [leaderboard, setLeaderboard] = useState<any[]>([])
   const [pot, setPot] = useState(0)
@@ -222,17 +224,23 @@ function Page() {
       }
       setCurrentQ(res.question)
       setSelectedOpt(null)
-      setTimeLeft(detail?.timePerQuestionSeconds ?? 20)
+      setCorrectOptionIndex(null)
+      setTimeLeft(res.timeRemaining ?? 20)
     } catch (e: any) {
       setError(e.message)
     }
-  }, [selectedId, sessionToken, detail?.timePerQuestionSeconds])
+  }, [selectedId, sessionToken])
 
   useEffect(() => {
     if (view === 'play' && selectedId && sessionToken) loadQuestion()
   }, [view, selectedId, loadQuestion])
 
   // timer
+  const answeredRef = useRef(false)
+  useEffect(() => {
+    answeredRef.current = selectedOpt !== null
+  }, [selectedOpt])
+
   useEffect(() => {
     if (view !== 'play' || !currentQ) return
     if (timerRef.current) clearInterval(timerRef.current)
@@ -240,14 +248,15 @@ function Page() {
       setTimeLeft((t) => {
         if (t <= 1) {
           if (timerRef.current) clearInterval(timerRef.current)
-          handleAnswer(true)
+          if (!answeredRef.current) handleAnswer(true)
+          loadQuestion()
           return 0
         }
         return t - 1
       })
     }, 1000)
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
-  }, [view, currentQ?.id])
+  }, [view, currentQ?.id, loadQuestion])
 
   const loadLeaderboard = useCallback(async () => {
     if (!selectedId) return
@@ -278,19 +287,11 @@ function Page() {
     setBusy(true)
     try {
       const res: any = await api.rounds.submitAnswer(selectedId, currentQ.id, opt, sessionToken)
-      
-      if (res.finished) {
-        await api.rounds.finish(selectedId, sessionToken).catch(() => {})
-        setView('results')
-      } else if (res.nextQuestion) {
-        setCurrentQ(res.nextQuestion)
-        setSelectedOpt(null)
-        setTimeLeft(detail?.timePerQuestionSeconds ?? 20)
-      } else {
-        await loadQuestion().catch(() => {})
+      if (res.correctOptionIndex !== undefined) {
+        setCorrectOptionIndex(res.correctOptionIndex)
       }
     } catch (e: any) {
-      setError(e.message)
+      // Ignore "Already answered" if it was sent automatically
     } finally {
       setBusy(false)
     }
@@ -493,6 +494,7 @@ function Page() {
                 currentQ={currentQ}
                 selectedOpt={selectedOpt}
                 setSelectedOpt={setSelectedOpt}
+                correctOptionIndex={correctOptionIndex}
                 timeLeft={timeLeft}
                 detail={detail}
                 leaderboard={leaderboard}
