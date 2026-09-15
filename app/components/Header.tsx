@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, Zap } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatAddress } from '@/lib/nimiq'
 
@@ -16,9 +16,13 @@ export default function Header({ address, sdkState, onWalletClick, unreadNotific
   return (
     <header className="flex items-center justify-between border-b border-border pb-4 mb-4">
       <button onClick={() => window.location.href = '/'} className="flex items-center gap-3 text-left">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-          <Zap className="size-5" fill="currentColor" />
-        </span>
+        <img
+          src="/logo.png"
+          alt="Nimble Quiz"
+          className="size-9 rounded-xl"
+          width={36}
+          height={36}
+        />
         <span>
           <span className="block font-mono text-sm font-bold tracking-tight">NIMBLE</span>
           <span className="block font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">quiz protocol</span>
