@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(uuid())
+  nimiqAddress   String    @unique @map("nimiq_address")
+  displayName    String?   @map("display_name")
+  language       String    @default("en")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  hostedRounds     TriviaRound[]     @relation("HostedRounds")
+  entries          RoundEntry[]      @relation("PlayerEntries")
+  answers          Answer[]          @relation("PlayerAnswers")
+  payoutsReceived  Payout[]          @relation("PayoutRecipient")
+  notifications    Notification[]
+
+  @@map("users")
+}
+
+model TriviaRound {
+  id                    String           @id @default(uuid())
+  hostId                String           @map("host_id")
+  title                 String
+  category              String
+  categoryMode          CategoryMode     @default(SINGLE) @map("category_mode")
+  stakeAmount           Decimal          @map("stake_amount")
+  questionCount         Int              @map("question_count")
+  timePerQuestionSeconds Int             @map("time_per_question_seconds")
+  payoutRule            PayoutRule       @default(TOP3_SPLIT) @map("payout_rule")
+  minPlayers            Int              @default(2) @map("min_players")
+  maxPlayers            Int              @default(10) @map("max_players")
+  status                RoundStatus      @default(OPEN)
+  entryDeadline         DateTime?        @map("entry_deadline")
+  createdAt             DateTime         @default(now()) @map("created_at")
+
+  host       User          @relation("HostedRounds", fields: [hostId], references: [id], onDelete: Cascade)
+  entries    RoundEntry[]
+  questions  Question[]
+  answers    Answer[]
+  payouts    Payout[]
+
+  @@map("trivia_rounds")
+}
+
+model RoundEntry {
+  id            String        @id @default(uuid())
+  roundId       String        @map("round_id")
+  playerId      String        @map("player_id")
+  stakeStatus   StakeStatus   @default(PENDING) @map("stake_status")
+  txHash        String?       @unique @map("tx_hash")
+  confirmedAt   DateTime?     @map("confirmed_at")
+  joinedAt      DateTime      @default(now()) @map("joined_at")
+
+  round   TriviaRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  player  User        @relation("PlayerEntries", fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, playerId])
+  @@map("round_entries")
+}
+
+model Question {
+  id                String   @id @default(uuid())
+  roundId           String   @map("round_id")
+  prompt            String
+  options           Json     // array of 4 strings
+  correctOptionIndex Int     @map("correct_option_index")
+  orderIndex        Int      @map("order_index")
+
+  round    TriviaRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  answers  Answer[]
+
+  @@map("questions")
+}
+
+model Answer {
+  id                   String   @id @default(uuid())
+  roundId              String   @map("round_id")
+  questionId           String   @map("question_id")
+  playerId             String   @map("player_id")
+  selectedOptionIndex  Int?     @map("selected_option_index")
+  isCorrect            Boolean  @map("is_correct")
+  responseTimeMs       Int      @map("response_time_ms")
+  answeredAt           DateTime @default(now()) @map("answered_at")
+
+  round    TriviaRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  player   User        @relation("PlayerAnswers", fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, playerId])
+  @@map("answers")
+}
+
+model Payout {
+  id            String       @id @default(uuid())
+  roundId       String       @map("round_id")
+  recipientId   String       @map("recipient_id")
+  amount        Decimal
+  txHash        String?      @unique @map("tx_hash")
+  status        PayoutStatus @default(PENDING)
+  confirmedAt   DateTime?    @map("confirmed_at")
+
+  round      TriviaRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  recipient  User        @relation("PayoutRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@map("payouts")
+}
+
+enum CategoryMode {
+  SINGLE
+  MIXED
+}
+
+enum PayoutRule {
+  WINNER_TAKE_ALL
+  TOP3_SPLIT
+}
+
+enum RoundStatus {
+  OPEN
+  IN_PROGRESS
+  SCORING
+  AWAITING_PAYOUT
+  COMPLETED
+  CANCELLED
+}
+
+enum StakeStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum PayoutStatus {
+  PENDING
+  SENT
+  CONFIRMED
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  JOIN
+  PAYOUT
+  SYSTEM
+}
