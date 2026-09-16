@@ -3,7 +3,7 @@ import { addressTxsUrl } from '@/lib/chain'
 
 export async function verifyPendingStakes() {
   const openRounds = await prisma.triviaRound.findMany({
-    where: { status: 'OPEN' },
+    where: { status: { in: ['OPEN', 'IN_PROGRESS'] } },
     include: {
       host: true,
       entries: {
@@ -56,8 +56,8 @@ async function scanForStakeTransaction(
     const transactions = data.transactions || []
 
     for (const tx of transactions) {
-      if (tx.recipient === hostAddress &&
-          tx.sender === playerAddress &&
+      if (tx.recipient.replace(/\s+/g, '') === hostAddress.replace(/\s+/g, '') &&
+          tx.sender.replace(/\s+/g, '') === playerAddress.replace(/\s+/g, '') &&
           tx.value === amountLuna &&
           tx.data?.includes(`round:${roundId}`)) {
 

@@ -121,11 +121,11 @@ async function verifyStakeTransaction(
 
     const tx = await response.json()
 
-    if (tx.recipient !== hostAddress) {
+    if (tx.recipient.replace(/\s+/g, '') !== hostAddress.replace(/\s+/g, '')) {
       return { success: false, hardReject: true, error: 'Transaction recipient does not match host address' }
     }
 
-    if (tx.sender !== playerAddress) {
+    if (tx.sender.replace(/\s+/g, '') !== playerAddress.replace(/\s+/g, '')) {
       return { success: false, hardReject: true, error: 'Transaction sender does not match your wallet address' }
     }
 
