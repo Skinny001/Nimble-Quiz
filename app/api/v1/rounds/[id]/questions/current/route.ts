@@ -39,7 +39,7 @@ export async function GET(
       // The first player to load the play view starts the official clock!
       // We give an 8-second buffer so all other players polling the lobby have time to sync up.
       startedAt = new Date(Date.now() + 8000)
-      await prisma.triviaRound.update({ where: { id }, data: { startedAt } })
+      await prisma.triviaRound.update({ where: { id }, data: { startedAt } as any })
     }
 
     const elapsedMs = Date.now() - startedAt.getTime()

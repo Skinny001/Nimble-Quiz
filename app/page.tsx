@@ -216,9 +216,12 @@ function Page() {
   // auto-advance host (or AFK players) to results when the round finishes
   useEffect(() => {
     if (view === 'lobby' && (detailStatus === 'SCORING' || detailStatus === 'AWAITING_PAYOUT' || detailStatus === 'COMPLETED')) {
+      if (detailStatus === 'SCORING' && selectedId && sessionToken) {
+        api.rounds.finish(selectedId, sessionToken).catch(() => {})
+      }
       setView('results')
     }
-  }, [view, detailStatus])
+  }, [view, detailStatus, selectedId, sessionToken])
 
   const loadQuestion = useCallback(async () => {
     if (!selectedId || !sessionToken) return

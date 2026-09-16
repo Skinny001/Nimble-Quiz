@@ -55,17 +55,19 @@ export async function POST(
     await prisma.$transaction(async (tx) => {
       await tx.triviaRound.update({
         where: { id },
-        data: { status: 'AWAITING_PAYOUT' },
+        data: { status: payouts.length > 0 ? 'AWAITING_PAYOUT' : 'COMPLETED' },
       })
 
-      await tx.payout.createMany({
-        data: payouts.map(p => ({
-          roundId: id,
-          recipientId: p.recipientId,
-          amount: p.amount,
-          status: 'PENDING',
-        })),
-      })
+      if (payouts.length > 0) {
+        await tx.payout.createMany({
+          data: payouts.map(p => ({
+            roundId: id,
+            recipientId: p.recipientId,
+            amount: p.amount,
+            status: 'PENDING',
+          })),
+        })
+      }
     })
 
     return NextResponse.json({
