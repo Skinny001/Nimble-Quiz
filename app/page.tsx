@@ -1,610 +1,211 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { History, Home, Plus, WalletMinimal } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { api } from '@/lib/api'
-import { formatAddress, getAccounts, getNimiq, sendPayoutPayment, sendStakePayment } from '@/lib/nimiq'
+import Link from 'next/link'
+import { Trophy, Zap, Shield, Users, ChevronRight, Star, Coins, Clock, Check } from 'lucide-react'
 
-import Header from '@/app/components/Header'
-import Sidebar from '@/app/components/Sidebar'
-import Discover from '@/app/components/Discover'
-import Create from '@/app/components/Create'
-import Detail from '@/app/components/Detail'
-import Lobby from '@/app/components/Lobby'
-import PlayView from '@/app/components/PlayView'
-import Results from '@/app/components/Results'
-import HistoryView from '@/app/components/HistoryView'
-import Wallet from '@/app/components/Wallet'
-import NotificationsPanel from '@/app/components/NotificationsPanel'
-
-type SdkState = 'connecting' | 'connected' | 'browser'
-type View = 'discover' | 'create' | 'detail' | 'lobby' | 'play' | 'results' | 'history' | 'wallet'
-
-type RoundListItem = {
-  id: string; title: string; category: string; stakeAmount: number | string;
-  questionCount: number; maxPlayers: number; status: string;
-  confirmedEntries?: number; host?: { nimiqAddress: string; displayName?: string | null };
-  createdAt?: string;
-}
-
-type RoundDetail = {
-  id: string; title: string; category: string; status: string;
-  stakeAmount: number | string; questionCount: number; timePerQuestionSeconds: number;
-  maxPlayers: number; minPlayers: number; payoutRule: string; categoryMode: string;
-  hostId: string; host: { id: string; nimiqAddress: string; displayName?: string | null };
-  entries: Array<{ id: string; playerId: string; stakeStatus: string; player: { id: string; nimiqAddress: string; displayName?: string | null } }>;
-  isHost?: boolean; confirmedEntries?: number;
-}
-
-type CurrentQuestion = {
-  id: string; prompt: string; options: string[] | any; orderIndex: number; totalQuestions: number;
-}
-
-const navItems: { id: View; label: string; icon: typeof Home }[] = [
-  { id: 'discover', label: 'Discover', icon: Home },
-  { id: 'create', label: 'Create round', icon: Plus },
-  { id: 'history', label: 'My rounds', icon: History },
-  { id: 'wallet', label: 'Wallet', icon: WalletMinimal },
-]
-
-export default function PageWrapper() {
+export default function LandingPage() {
   return (
-    <Suspense fallback={null}>
-      <Page />
-    </Suspense>
-  )
-}
+    <div className="relative min-h-screen overflow-x-hidden" style={{ background: '#0D0F1F', color: '#F0F2FF', fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
 
-function Page() {
-  const [sdkState, setSdkState] = useState<SdkState>('connecting')
-  const [view, setView] = useState<View>('discover')
-  const [previousView, setPreviousView] = useState<View | null>(null)
-  const searchParams = useSearchParams()
-  const [address, setAddress] = useState<string | null>(null)
-  const [userId, setUserId] = useState<string | null>(null)
-  const [sessionToken, setSessionToken] = useState<string | null>(null)
-  const [rounds, setRounds] = useState<RoundListItem[]>([])
-  const [loadingRounds, setLoadingRounds] = useState(false)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [detail, setDetail] = useState<RoundDetail | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [copied, setCopied] = useState(false)
+      {/* Background orbs */}
+      <div className="orb orb-gold" />
+      <div className="orb orb-teal" />
 
-  // notifications
-  const [notifications, setNotifications] = useState<any[]>([])
-  const [showNotifications, setShowNotifications] = useState(false)
-  // play
-  const [currentQ, setCurrentQ] = useState<CurrentQuestion | null>(null)
-  const [selectedOpt, setSelectedOpt] = useState<number | null>(null)
-  const [correctOptionIndex, setCorrectOptionIndex] = useState<number | null>(null)
-  const [timeLeft, setTimeLeft] = useState(20)
-  const [leaderboard, setLeaderboard] = useState<any[]>([])
-  const [pot, setPot] = useState(0)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const [payAllProgress, setPayAllProgress] = useState<{ current: number; total: number } | null>(null)
-
-  // 1. SDK init + auth
-  useEffect(() => {
-    let active = true
-    ;(async () => {
-      try {
-        await getNimiq()
-        const accounts: any = await getAccounts()
-        if (!active) return
-        if (Array.isArray(accounts) && accounts.length > 0) {
-          const addr = accounts[0] as string
-          setAddress(addr)
-          const sess: any = await api.auth.session(addr)
-          if (!active) return
-          setSessionToken(sess.sessionToken)
-          setUserId(sess.user?.id ?? null)
-          setSdkState('connected')
-        } else {
-          setSdkState('browser')
-        }
-      } catch {
-        if (active) setSdkState('browser')
-      }
-    })()
-    return () => { active = false }
-  }, [])
-
-  // Read ?join=ROUND_ID from the URL (set by /join/[id] redirect) and
-  // auto-open the detail view so the invited player lands on the Pay screen.
-  useEffect(() => {
-    const joinId = searchParams?.get('join')
-    if (joinId) {
-      setSelectedId(joinId)
-      setView('detail')
-    }
-  }, [searchParams])
-
-  const loadRounds = useCallback(async () => {
-    setLoadingRounds(true)
-    setError(null)
-    try {
-      const data: any = await api.rounds.list()
-      setRounds(Array.isArray(data) ? data : [])
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setLoadingRounds(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (view === 'discover' || view === 'history') loadRounds()
-  }, [view, loadRounds])
-
-  const loadNotifications = useCallback(async () => {
-    if (!sessionToken) return
-    try {
-      const data: any = await api.notifications.list(sessionToken)
-      setNotifications(Array.isArray(data) ? data : [])
-    } catch (e) {
-      console.error('Failed to load notifications', e)
-    }
-  }, [sessionToken])
-
-  useEffect(() => {
-    let active = true
-    const poll = async () => {
-      if (!active) return
-      await loadNotifications().catch(() => {})
-      if (active) setTimeout(poll, 10000)
-    }
-    
-    if (sessionToken) {
-      poll()
-    }
-    return () => { active = false }
-  }, [sessionToken, loadNotifications])
-
-  const handleMarkAllRead = async () => {
-    if (!sessionToken) return
-    try {
-      await api.notifications.markAllRead(sessionToken)
-      await loadNotifications()
-    } catch (e) {
-      console.error('Failed to mark read', e)
-    }
-  }
-
-  const loadDetail = useCallback(async (id: string) => {
-    try {
-      const d: any = await api.rounds.get(id, sessionToken ?? undefined)
-      setDetail(d)
-      return d
-    } catch (e: any) {
-      setError(e.message)
-      return null
-    }
-  }, [sessionToken])
-
-  useEffect(() => {
-    if ((view === 'detail' || view === 'lobby') && selectedId) loadDetail(selectedId)
-  }, [view, selectedId, loadDetail])
-
-  // lobby polling
-  useEffect(() => {
-    if (view !== 'lobby' || !selectedId) return
-    let active = true
-    const poll = async () => {
-      if (!active) return
-      await loadDetail(selectedId).catch(() => {})
-      if (active) setTimeout(poll, 3000)
-    }
-    const t = setTimeout(poll, 3000)
-    return () => { active = false; clearTimeout(t) }
-  }, [view, selectedId, loadDetail])
-
-  // auto-advance lobby -> play when IN_PROGRESS (players only, not the host)
-  const detailStatus = detail?.status ?? null
-  const detailIsHost = detail?.isHost ?? false
-  const detailHostId = detail?.hostId ?? null
-  useEffect(() => {
-    if (view === 'lobby' && detailStatus === 'IN_PROGRESS') {
-      const isHost = detailIsHost || detailHostId === userId
-      if (!isHost) {
-        setView('play')
-      }
-    }
-  }, [view, detailStatus, detailIsHost, detailHostId, userId])
-
-  // auto-advance host (or AFK players) to results when the round finishes
-  useEffect(() => {
-    if (view === 'lobby' && (detailStatus === 'SCORING' || detailStatus === 'AWAITING_PAYOUT' || detailStatus === 'COMPLETED')) {
-      const finalize = async () => {
-        if (detailStatus === 'SCORING' && selectedId && sessionToken) {
-          setBusy(true)
-          try {
-            await api.rounds.finish(selectedId, sessionToken)
-          } catch {}
-          setBusy(false)
-        }
-        // Always reload detail before showing results so detail.payouts is fresh
-        if (selectedId) await loadDetail(selectedId).catch(() => {})
-        setView('results')
-      }
-      finalize()
-    }
-  }, [view, detailStatus, selectedId, sessionToken, loadDetail])
-
-  const loadQuestion = useCallback(async () => {
-    if (!selectedId || !sessionToken) return
-    try {
-      const res: any = await api.rounds.currentQuestion(selectedId, sessionToken)
-      if (res.finished) {
-        try { await api.rounds.finish(selectedId, sessionToken) } catch {}
-        // Reload detail so payouts are populated before showing results
-        await loadDetail(selectedId).catch(() => {})
-        setView('results')
-        return
-      }
-      setCurrentQ(res.question)
-      setSelectedOpt(null)
-      setCorrectOptionIndex(null)
-      pendingCorrectRef.current = null // clear any pending reveal from previous question
-      setTimeLeft(res.timeRemaining ?? 20)
-    } catch (e: any) {
-      setError(e.message)
-    }
-  }, [selectedId, sessionToken])
-
-  useEffect(() => {
-    if (view === 'play' && selectedId && sessionToken) loadQuestion()
-  }, [view, selectedId, loadQuestion])
-
-  // timer
-  const answeredRef = useRef(false)
-  // Store the correct answer index until the timer expires — don't reveal early
-  const pendingCorrectRef = useRef<number | null>(null)
-  useEffect(() => {
-    answeredRef.current = selectedOpt !== null
-  }, [selectedOpt])
-
-  useEffect(() => {
-    if (view !== 'play' || !currentQ) return
-    if (timerRef.current) clearInterval(timerRef.current)
-    pendingCorrectRef.current = null // reset for new question
-    timerRef.current = setInterval(() => {
-      setTimeLeft((t) => {
-        if (t <= 1) {
-          if (timerRef.current) clearInterval(timerRef.current)
-          if (!answeredRef.current) handleAnswer(true)
-          // Reveal the correct answer now that time is up
-          if (pendingCorrectRef.current !== null) {
-            setCorrectOptionIndex(pendingCorrectRef.current)
-          }
-          loadQuestion()
-          return 0
-        }
-        return t - 1
-      })
-    }, 1000)
-    return () => { if (timerRef.current) clearInterval(timerRef.current) }
-  }, [view, currentQ?.id, loadQuestion])
-
-  const loadLeaderboard = useCallback(async () => {
-    if (!selectedId) return
-    try {
-      const res: any = await api.rounds.leaderboard(selectedId)
-      setLeaderboard(res.leaderboard ?? [])
-      setPot(res.pot ?? 0)
-    } catch {}
-  }, [selectedId])
-
-  useEffect(() => {
-    let active = true
-    if ((view === 'play' || view === 'results' || view === 'lobby') && selectedId) {
-      const poll = async () => {
-        if (!active) return
-        await loadLeaderboard().catch(() => {})
-        if (active) setTimeout(poll, 3000)
-      }
-      poll()
-    }
-    return () => { active = false }
-  }, [view, selectedId, loadLeaderboard])
-
-  const handleAnswer = async (expired = false, forcedOpt?: number) => {
-    if (!selectedId || !sessionToken || !currentQ || busy) return
-    const opt = expired ? -1 : (forcedOpt !== undefined ? forcedOpt : selectedOpt)
-    // Block manual submit if no option is selected and timer hasn't expired
-    if (!expired && (opt === null || opt === undefined || opt === -1)) return
-    setBusy(true)
-    try {
-      const res: any = await api.rounds.submitAnswer(selectedId, currentQ.id, opt ?? -1, sessionToken)
-      if (res.correctOptionIndex !== undefined) {
-        // Don't reveal immediately — store it and reveal when timer hits zero
-        pendingCorrectRef.current = res.correctOptionIndex
-      }
-    } catch (e: any) {
-      // Ignore "Already answered" if it was sent automatically
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const handleJoin = async () => {
-    if (!selectedId || !sessionToken || !detail) return
-    setBusy(true); setError(null)
-    
-    let paymentSent = false
-    let hash = ''
-
-    try {
-      const intent: any = await api.rounds.joinIntent(selectedId, sessionToken)
-      const txHash: any = await sendStakePayment(intent.recipientAddress, Number(detail.stakeAmount), selectedId)
-      hash = typeof txHash === 'string' ? txHash : (txHash?.hash ?? String(txHash))
-      paymentSent = true
-
-      // Retry logic for mobile browsers returning from background
-      let confirmed = false
-      for (let i = 0; i < 3; i++) {
-        try {
-          await api.rounds.joinConfirm(selectedId, hash, sessionToken)
-          confirmed = true
-          break
-        } catch (err) {
-          console.warn('joinConfirm attempt failed:', err)
-          await new Promise(r => setTimeout(r, 2000))
-        }
-      }
-      
-      if (!confirmed) {
-        console.error('All joinConfirm attempts failed, relying on background cron.')
-      }
-
-      await loadDetail(selectedId)
-      setView('lobby')
-    } catch (e: any) {
-      if (!paymentSent) {
-        setError(e.message ?? 'Join failed')
-      } else {
-        // Payment was sent but something crashed. Still move to lobby to poll.
-        console.error('Error after payment sent:', e)
-        await loadDetail(selectedId).catch(() => {})
-        setView('lobby')
-      }
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const handleStart = async () => {
-    if (!selectedId || !sessionToken) return
-    setBusy(true); setError(null)
-    try {
-      await api.rounds.start(selectedId, sessionToken)
-      // Host stays on lobby — it shows the live leaderboard during IN_PROGRESS
-    } catch (e: any) {
-      setError(e.message ?? 'Start failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const handleDeleteRound = async () => {
-    if (!selectedId || !sessionToken) return
-    if (!confirm('Are you sure you want to cancel this round?')) return
-    setBusy(true); setError(null)
-    try {
-      await api.rounds.delete(selectedId, sessionToken)
-      setView('discover')
-      setSelectedId(null)
-      loadRounds()
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const handleCreate = async (data: any) => {
-    if (!sessionToken) { setError('Connect inside Nimiq Pay first'); return }
-    setBusy(true); setError(null)
-    try {
-      const created: any = await api.rounds.create(data, sessionToken)
-      setSelectedId(created.id)
-      setDetail(null)
-      setView('lobby')
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const handlePayout = async (payout: any) => {
-    if (!selectedId || !sessionToken || !detail || !detail.isHost) return
-    setBusy(true); setError(null)
-    try {
-      // 1. Send payment via Nimiq Mini App SDK
-      const txHash: any = await sendPayoutPayment(payout.recipient.nimiqAddress, Number(payout.amount), selectedId, payout.id)
-      const hash = typeof txHash === 'string' ? txHash : (txHash?.hash ?? String(txHash))
-      
-      // 2. Confirm payment with backend
-      await api.rounds.payoutConfirm(selectedId, [{ payoutId: payout.id, txHash: hash }], sessionToken)
-      
-      // 3. Reload detail to update UI
-      await loadDetail(selectedId)
-    } catch (e: any) {
-      setError(e.message ?? 'Payout failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const handlePayAll = async () => {
-    if (!selectedId || !sessionToken || !detail || !detail.isHost) return
-    const pending = (detail.payouts ?? []).filter((p: any) => p.status !== 'CONFIRMED')
-    if (pending.length === 0) return
-
-    setBusy(true)
-    setError(null)
-    setPayAllProgress({ current: 0, total: pending.length })
-
-    for (let i = 0; i < pending.length; i++) {
-      const payout = pending[i]
-      setPayAllProgress({ current: i + 1, total: pending.length })
-      try {
-        // Each call awaits the Nimiq approval popup before proceeding
-        const txHash: any = await sendPayoutPayment(
-          payout.recipient.nimiqAddress,
-          Number(payout.amount),
-          selectedId,
-          payout.id
-        )
-        const hash = typeof txHash === 'string' ? txHash : (txHash?.hash ?? String(txHash))
-        await api.rounds.payoutConfirm(selectedId, [{ payoutId: payout.id, txHash: hash }], sessionToken)
-        await loadDetail(selectedId) // refresh UI after each payment
-      } catch (e: any) {
-        setError(`Payment ${i + 1}/${pending.length} failed: ${e.message ?? 'Payout failed'}. Remaining payouts still pending.'`)
-        break // stop on rejection — remaining payouts stay pending for retry
-      }
-    }
-
-    setPayAllProgress(null)
-    setBusy(false)
-  }
-
-  const copyInvite = async () => {
-    if (!selectedId) return
-    const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const roundTitle = detail?.title ? encodeURIComponent(detail.title) : ''
-    const url = `${origin}/join/${selectedId}${roundTitle ? `?name=${roundTitle}` : ''}`
-    await navigator.clipboard?.writeText(url)
-    setCopied(true); setTimeout(() => setCopied(false), 2000)
-  }
-
-  const toggleWallet = () => {
-    if (view === 'wallet') {
-      setView(previousView || 'discover')
-    } else {
-      setPreviousView(view)
-      setView('wallet')
-    }
-  }
-
-  return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col px-4 sm:px-6 py-4 sm:py-6">
-        <Header 
-          address={address} 
-          sdkState={sdkState} 
-          onWalletClick={toggleWallet} 
-          unreadNotifications={notifications.filter(n => !n.isRead).length}
-          onBellClick={() => setShowNotifications(true)}
-        />
-        <div className="flex flex-1 gap-4 sm:gap-8 py-6 sm:py-10">
-          <Sidebar view={view} setView={setView} />
-          <section className="min-w-0 flex-1">
-            {view === 'discover' && (
-              <Discover
-                rounds={rounds}
-                loadingRounds={loadingRounds}
-                sdkState={sdkState}
-                address={address}
-                error={error}
-                onCreateClick={() => setView('create')}
-                onRoundClick={(r, isHost) => { setSelectedId(r.id); setDetail(null); setView(isHost ? 'lobby' : 'detail') }}
-              />
-            )}
-            {view === 'create' && (
-              <Create
-                onBack={() => setView('discover')}
-                onCreate={handleCreate}
-                busy={busy}
-                error={error}
-                sdkState={sdkState}
-              />
-            )}
-            {view === 'detail' && (
-              <Detail
-                detail={detail}
-                selectedId={selectedId}
-                userId={userId}
-                sessionToken={sessionToken}
-                sdkState={sdkState}
-                busy={busy}
-                error={error}
-                onBack={() => setView('discover')}
-                onJoin={handleJoin}
-                onGoToLobby={() => setView('lobby')}
-              />
-            )}
-            {view === 'lobby' && (
-              <Lobby
-                detail={detail}
-                selectedId={selectedId}
-                userId={userId}
-                busy={busy}
-                error={error}
-                leaderboard={leaderboard}
-                pot={pot}
-                onStart={handleStart}
-                onCopyInvite={copyInvite}
-                onBack={() => setView('discover')}
-                onViewResults={() => setView('results')}
-                onDeleteRound={handleDeleteRound}
-              />
-            )}
-            {view === 'play' && (
-              <PlayView
-                currentQ={currentQ}
-                selectedOpt={selectedOpt}
-                setSelectedOpt={setSelectedOpt}
-                correctOptionIndex={correctOptionIndex}
-                timeLeft={timeLeft}
-                detail={detail}
-                leaderboard={leaderboard}
-                busy={busy}
-                onAnswer={handleAnswer}
-              />
-            )}
-            {view === 'results' && (
-              <Results
-                detail={detail}
-                leaderboard={leaderboard}
-                pot={pot}
-                userId={userId}
-                busy={busy}
-                error={error}
-                onPayout={handlePayout}
-                onPayAll={handlePayAll}
-                payAllProgress={payAllProgress}
-                onHistory={() => setView('history')}
-                onBack={() => setView('discover')}
-              />
-            )}
-            {view === 'history' && (
-              <HistoryView rounds={rounds} address={address} onBack={() => setView('discover')} />
-            )}
-            {view === 'wallet' && (
-              <Wallet
-                address={address}
-                userId={userId}
-                sdkState={sdkState}
-                error={error}
-              />
-            )}
-          </section>
+      {/* Nav */}
+      <nav className="relative z-10 flex items-center justify-between px-4 py-4 sm:px-12 lg:px-20">
+        <div className="flex items-center gap-2">
+          <img src="/logo.png" alt="Nimble Quiz Logo" className="h-8 sm:h-9 w-auto object-contain" />
+          <span className="text-base sm:text-lg font-bold tracking-tight">Nimble Quiz</span>
         </div>
-        <footer className="border-t py-4 text-xs text-muted-foreground text-center sm:text-left">
-          Built for fast minds, powered by Nimiq.
-        </footer>
-      </div>
-      {showNotifications && (
-        <NotificationsPanel
-          notifications={notifications}
-          onClose={() => setShowNotifications(false)}
-          onMarkAllRead={handleMarkAllRead}
-        />
-      )}
-    </main>
+        <Link
+          href="/play"
+          className="flex items-center gap-1.5 rounded-xl px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all btn-gold"
+        >
+          Launch App <ChevronRight className="size-4" />
+        </Link>
+      </nav>
+
+      {/* Hero */}
+      <section className="relative z-10 mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-12 lg:px-20 lg:pt-24 text-center">
+        <h1 className="mx-auto max-w-4xl text-3xl font-bold leading-tight tracking-tight sm:text-6xl lg:text-7xl">
+          Stake your knowledge.{' '}
+          <span style={{ background: 'linear-gradient(135deg,#E9B213,#EC991C)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+            Win NIM.
+          </span>
+        </h1>
+
+        <p className="mx-auto mt-4 sm:mt-6 max-w-2xl text-base sm:text-lg leading-relaxed" style={{ color: '#8B8FAD' }}>
+          The fastest stake-based quiz game on Nimiq Pay. Create a round, invite friends, everyone stakes NIM — the sharpest mind wins the pot.
+        </p>
+
+        <div className="mt-8 sm:mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <Link
+            href="/play"
+            className="flex w-full sm:w-auto items-center justify-center gap-2.5 rounded-2xl px-8 py-4 text-base font-bold transition-all btn-gold gold-glow"
+          >
+            <Zap className="size-5" />
+            Start Playing Free
+          </Link>
+          <a
+            href="#how-it-works"
+            className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl px-8 py-4 text-base font-semibold transition-all"
+            style={{ border: '1px solid #2F3355', color: '#8B8FAD' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#E9B213'; (e.currentTarget as HTMLElement).style.color = '#E9B213' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#2F3355'; (e.currentTarget as HTMLElement).style.color = '#8B8FAD' }}
+          >
+            See how it works
+          </a>
+        </div>
+
+        {/* Floating 3D quiz card */}
+        <div className="relative mx-auto mt-16 sm:mt-20 max-w-sm float-anim">
+          <div className="rounded-2xl p-5 sm:p-6 text-left gold-glow" style={{ background: '#1A1D35', border: '1px solid rgba(233,178,19,0.2)', transform: 'perspective(800px) rotateX(4deg) rotateY(-4deg)' }}>
+            <div className="mb-4 flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#E9B213' }}>Question 3 of 5</span>
+              <div className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold" style={{ background: 'rgba(233,178,19,0.15)', color: '#E9B213' }}>
+                <Clock className="size-3.5" /> 12s
+              </div>
+            </div>
+            <p className="text-base font-semibold leading-snug">Which country was the first to adopt Bitcoin as legal tender?</p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {['El Salvador', 'Nigeria', 'Panama', 'Uruguay'].map((opt, i) => (
+                <div key={i} className="rounded-xl p-3 text-xs sm:text-sm font-medium transition-all"
+                  style={{
+                    background: i === 0 ? 'rgba(33,188,165,0.15)' : 'rgba(37,40,71,0.8)',
+                    border: i === 0 ? '1px solid rgba(33,188,165,0.5)' : '1px solid rgba(47,51,85,0.8)',
+                    color: i === 0 ? '#21BCA5' : '#8B8FAD'
+                  }}>
+                  <span className="mr-1.5 text-xs">{String.fromCharCode(65 + i)}</span>{opt}
+                  {i === 0 && ' ✓'}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Floating stats */}
+          <div className="absolute -right-2 sm:-right-8 -top-6 float-anim-slow">
+            <div className="flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-bold glass" style={{ color: '#E9B213' }}>
+              <Trophy className="size-3.5" /> +2 NIM
+            </div>
+          </div>
+          <div className="absolute -left-2 sm:-left-8 -bottom-4 float-anim" style={{ animationDelay: '-1s' }}>
+            <div className="flex items-center gap-1 rounded-xl px-3 py-2 text-xs glass" style={{ color: '#21BCA5' }}>
+              <Check className="size-3.5" /> Correct!
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats banner */}
+      <section className="relative z-10 mx-auto max-w-6xl px-6 sm:px-12 lg:px-20">
+        <div className="grid grid-cols-3 gap-4 rounded-2xl p-6 sm:p-8 glass">
+          {[
+            { label: 'Built on', value: 'Nimiq', sub: 'Blockchain' },
+            { label: 'Payment', value: '< 1s', sub: 'Settlement' },
+            { label: 'Payout', value: '100%', sub: 'On-chain verified' },
+          ].map((s, i) => (
+            <div key={i} className="text-center">
+              <p className="text-xl font-bold sm:text-3xl" style={{ color: '#E9B213' }}>{s.value}</p>
+              <p className="mt-0.5 text-xs sm:text-sm" style={{ color: '#8B8FAD' }}>{s.label}</p>
+              <p className="text-xs" style={{ color: '#2F3355' }}>{s.sub}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section id="how-it-works" className="relative z-10 mx-auto max-w-6xl px-6 py-24 sm:px-12 lg:px-20">
+        <div className="text-center mb-14">
+          <p className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: '#E9B213' }}>Simple by design</p>
+          <h2 className="text-3xl font-bold sm:text-5xl">How it works</h2>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-3">
+          {[
+            {
+              step: '01',
+              icon: <Users className="size-6" />,
+              title: 'Host creates a round',
+              desc: 'Pick a category, set the stake amount, and share the invite link or QR code with friends.',
+              color: '#E9B213',
+            },
+            {
+              step: '02',
+              icon: <Coins className="size-6" />,
+              title: 'Players stake NIM',
+              desc: 'Each player joins through Nimiq Pay, their stake is sent directly to the host\'s wallet.',
+              color: '#21BCA5',
+            },
+            {
+              step: '03',
+              icon: <Trophy className="size-6" />,
+              title: 'Winner takes the pot',
+              desc: 'The highest scorer wins. Host pays out via Nimiq Pay — verified on-chain immediately.',
+              color: '#EC991C',
+            },
+          ].map((item, i) => (
+            <div key={i} className="card-3d rounded-2xl p-6 sm:p-8" style={{ background: '#1A1D35', border: `1px solid rgba(47,51,85,0.8)` }}>
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex size-11 items-center justify-center rounded-xl" style={{ background: `${item.color}18`, color: item.color }}>
+                  {item.icon}
+                </div>
+                <span className="text-2xl font-black" style={{ color: '#2F3355' }}>{item.step}</span>
+              </div>
+              <h3 className="mb-2 text-lg font-bold">{item.title}</h3>
+              <p className="text-sm leading-relaxed" style={{ color: '#8B8FAD' }}>{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="relative z-10 mx-auto max-w-6xl px-6 pb-24 sm:px-12 lg:px-20">
+        <div className="text-center mb-14">
+          <p className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: '#E9B213' }}>Why Nimble Quiz</p>
+          <h2 className="text-3xl font-bold sm:text-5xl">Everything you need</h2>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { icon: <Shield className="size-5" />, title: 'On-chain verified', desc: 'Every payment and payout is verified on the Nimiq blockchain — no trust required.', color: '#21BCA5' },
+            { icon: <Zap className="size-5" />, title: 'Real-time gameplay', desc: 'Live countdown timers, instant leaderboard updates, and synchronized question delivery.', color: '#E9B213' },
+            { icon: <Trophy className="size-5" />, title: 'Flexible payout rules', desc: 'Winner takes all, or top 3 share the pot — you decide when you create the round.', color: '#EC991C' },
+            { icon: <Users className="size-5" />, title: 'Up to 12 players', desc: 'Invite your squad, share a QR code or link — anyone with Nimiq Pay can join instantly.', color: '#E9B213' },
+            { icon: <Star className="size-5" />, title: 'Share anywhere', desc: 'One-tap sharing to WhatsApp, Telegram, or X. Or display the QR code for in-person games.', color: '#21BCA5' },
+            { icon: <Coins className="size-5" />, title: 'Pay All in one go', desc: 'Host pays all winners with a single tap — each Nimiq approval flows sequentially.', color: '#EC991C' },
+          ].map((f, i) => (
+            <div key={i} className="card-3d rounded-2xl p-5 sm:p-6" style={{ background: '#1A1D35', border: '1px solid rgba(47,51,85,0.8)' }}>
+              <div className="mb-3 flex size-9 items-center justify-center rounded-lg" style={{ background: `${f.color}18`, color: f.color }}>
+                {f.icon}
+              </div>
+              <h3 className="mb-1.5 font-semibold">{f.title}</h3>
+              <p className="text-sm leading-relaxed" style={{ color: '#8B8FAD' }}>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="relative z-10 mx-auto max-w-6xl px-6 pb-24 sm:px-12 lg:px-20">
+        <div className="rounded-3xl p-10 text-center sm:p-16 gold-glow" style={{ background: 'linear-gradient(135deg, rgba(233,178,19,0.1) 0%, rgba(26,29,53,0.9) 50%, rgba(33,188,165,0.08) 100%)', border: '1px solid rgba(233,178,19,0.2)' }}>
+          <h2 className="text-3xl font-bold sm:text-5xl">Ready to play?</h2>
+          <p className="mx-auto mt-4 max-w-xl text-base" style={{ color: '#8B8FAD' }}>
+            Open Nimiq Pay, tap the link below, and your first round is live in under 60 seconds.
+          </p>
+          <Link
+            href="/play"
+            className="mt-8 inline-flex items-center gap-2.5 rounded-2xl px-10 py-4 text-base font-bold btn-gold"
+          >
+            <Zap className="size-5" />
+            Launch App Now
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 border-t px-6 py-8 text-center text-sm sm:px-12 lg:px-20" style={{ borderColor: '#2F3355', color: '#8B8FAD' }}>
+        <p>Built with ❤️ for the Nimiq Pay Hackathon 2025 · <span style={{ color: '#E9B213' }}>Nimble Quiz</span></p>
+      </footer>
+    </div>
   )
 }

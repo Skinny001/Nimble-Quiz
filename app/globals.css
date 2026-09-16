@@ -5,6 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: var(--font-space-grotesk), 'Space Grotesk', system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -43,113 +44,82 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  /* Nimiq custom tokens */
+  --color-nimiq-gold: var(--nimiq-gold);
+  --color-nimiq-gold-dark: var(--nimiq-gold-dark);
+  --color-nimiq-teal: var(--nimiq-teal);
+  --color-nimiq-surface: var(--nimiq-surface);
+  --color-nimiq-surface-high: var(--nimiq-surface-high);
 }
 
 :root {
-  color-scheme: light;
-  --background: oklch(0.98 0.012 210);
-  --foreground: oklch(0.19 0.035 220);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.19 0.035 220);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.19 0.035 220);
-  --primary: oklch(0.47 0.17 222);
-  --primary-foreground: oklch(0.98 0.012 210);
-  --secondary: oklch(0.93 0.025 210);
-  --secondary-foreground: oklch(0.25 0.05 220);
-  --muted: oklch(0.94 0.018 210);
-  --muted-foreground: oklch(0.48 0.045 220);
-  --accent: oklch(0.78 0.14 155);
-  --accent-foreground: oklch(0.22 0.06 160);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.88 0.025 210);
-  --input: oklch(0.88 0.025 210);
-  --ring: oklch(0.47 0.17 222);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
+  /* ── Nimiq Pay Dark Theme (always dark) ── */
   color-scheme: dark;
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+
+  /* Core palette */
+  --nimiq-gold: #E9B213;
+  --nimiq-gold-dark: #EC991C;
+  --nimiq-teal: #21BCA5;
+  --nimiq-navy: #0D0F1F;
+  --nimiq-surface: #1A1D35;
+  --nimiq-surface-high: #252847;
+  --nimiq-border: #2F3355;
+  --nimiq-muted: #8B8FAD;
+
+  /* ShadCN tokens mapped to Nimiq */
+  --background: #0D0F1F;
+  --foreground: #F0F2FF;
+  --card: #1A1D35;
+  --card-foreground: #F0F2FF;
+  --popover: #1A1D35;
+  --popover-foreground: #F0F2FF;
+  --primary: #E9B213;
+  --primary-foreground: #0D0F1F;
+  --secondary: #252847;
+  --secondary-foreground: #F0F2FF;
+  --muted: #1A1D35;
+  --muted-foreground: #8B8FAD;
+  --accent: #21BCA5;
+  --accent-foreground: #0D0F1F;
+  --destructive: #EF4444;
+  --border: #2F3355;
+  --input: #2F3355;
+  --ring: #E9B213;
+  --radius: 0.75rem;
+
+  --chart-1: #E9B213;
+  --chart-2: #21BCA5;
+  --chart-3: #8B8FAD;
+  --chart-4: #EC991C;
+  --chart-5: #EF4444;
+
+  --sidebar: #13152A;
+  --sidebar-foreground: #F0F2FF;
+  --sidebar-primary: #E9B213;
+  --sidebar-primary-foreground: #0D0F1F;
+  --sidebar-accent: #252847;
+  --sidebar-accent-foreground: #F0F2FF;
+  --sidebar-border: #2F3355;
+  --sidebar-ring: #E9B213;
 }
 
-@media (prefers-color-scheme: dark) {
+/* Force dark everywhere — Nimiq Pay is always dark */
+.dark, :root {
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
   :root:not(.light) {
     color-scheme: dark;
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --background: #0D0F1F;
+    --foreground: #F0F2FF;
+    --card: #1A1D35;
+    --card-foreground: #F0F2FF;
+    --primary: #E9B213;
+    --primary-foreground: #0D0F1F;
+    --secondary: #252847;
+    --muted-foreground: #8B8FAD;
+    --border: #2F3355;
   }
 }
 
@@ -160,7 +130,12 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-space-grotesk), system-ui, sans-serif;
     -webkit-tap-highlight-color: transparent;
+    /* animated gradient mesh background */
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% 20%, rgba(233,178,19,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(33,188,165,0.04) 0%, transparent 60%);
   }
   button, [role="button"], a {
     touch-action: manipulation;
@@ -168,8 +143,144 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    color-scheme: dark;
-  }
+/* ── 3D Card Styles ── */
+.card-3d {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transform-style: preserve-3d;
+  will-change: transform;
 }
+.card-3d:hover {
+  transform: translateY(-3px) rotateX(1deg);
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.4),
+    0 4px 16px rgba(233,178,19,0.08);
+}
+
+/* ── Glass Morphism ── */
+.glass {
+  background: rgba(26, 29, 53, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(47, 51, 85, 0.9);
+}
+
+/* ── Gold Glow ── */
+.gold-glow {
+  box-shadow:
+    0 0 24px rgba(233,178,19,0.18),
+    0 0 64px rgba(233,178,19,0.06);
+}
+.gold-glow-sm {
+  box-shadow: 0 0 12px rgba(233,178,19,0.2);
+}
+
+/* ── Teal Glow ── */
+.teal-glow {
+  box-shadow: 0 0 20px rgba(33,188,165,0.2);
+}
+
+/* ── Animated Orbs (background decoration) ── */
+@keyframes orb-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20px, -30px) scale(1.05); }
+  66% { transform: translate(-15px, 15px) scale(0.97); }
+}
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  animation: orb-float 12s ease-in-out infinite;
+}
+.orb-gold {
+  background: radial-gradient(circle, rgba(233,178,19,0.12) 0%, transparent 70%);
+  width: 600px;
+  height: 600px;
+  top: -200px;
+  right: -200px;
+  animation-delay: 0s;
+}
+.orb-teal {
+  background: radial-gradient(circle, rgba(33,188,165,0.08) 0%, transparent 70%);
+  width: 500px;
+  height: 500px;
+  bottom: -150px;
+  left: -150px;
+  animation-delay: -4s;
+}
+
+/* ── Floating animation for hero elements ── */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-16px) rotate(2deg); }
+}
+.float-anim {
+  animation: float-y 5s ease-in-out infinite;
+}
+.float-anim-slow {
+  animation: float-y 8s ease-in-out infinite;
+  animation-delay: -2s;
+}
+
+/* ── Pulse dot (live indicator) ── */
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+.live-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+/* ── Timer ring ── */
+@property --timer-pct {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 100%;
+}
+.timer-ring {
+  background: conic-gradient(
+    #E9B213 var(--timer-pct),
+    rgba(47,51,85,0.5) var(--timer-pct)
+  );
+  border-radius: 50%;
+  transition: --timer-pct 1s linear;
+}
+
+/* ── Shimmer loading ── */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, #1A1D35 0%, #252847 50%, #1A1D35 100%);
+  background-size: 800px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ── Gold gradient button ── */
+.btn-gold {
+  background: linear-gradient(135deg, #E9B213 0%, #EC991C 100%);
+  color: #0D0F1F;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(233,178,19,0.3);
+}
+.btn-gold:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(233,178,19,0.4);
+}
+.btn-gold:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #0D0F1F; }
+::-webkit-scrollbar-thumb { background: #2F3355; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #E9B213; }

@@ -1,7 +1,6 @@
 'use client'
 
-import { ArrowLeft, Check, ChevronRight, Clock3, ShieldCheck } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { ArrowLeft, Check, ChevronRight, Clock3, ShieldCheck, Zap } from 'lucide-react'
 import { formatAddress } from '@/lib/nimiq'
 
 type RoundDetail = {
@@ -31,8 +30,8 @@ export default function Detail({
   busy, error, onBack, onJoin, onGoToLobby,
 }: DetailProps) {
   if (!detail || detail.id !== selectedId) return (
-    <div className="mx-auto w-full max-w-xl p-4 sm:p-6 text-center text-muted-foreground">
-      Loading round…
+    <div className="mx-auto w-full max-w-xl p-4 sm:p-6 text-center text-sm" style={{ color: '#8B8FAD' }}>
+      Loading round details…
     </div>
   )
 
@@ -40,100 +39,113 @@ export default function Detail({
   const isHost = detail.isHost || detail.hostId === userId
   if (isHost) {
     Promise.resolve().then(() => onGoToLobby())
-    return <p className="p-4 text-sm text-muted-foreground">Opening your round dashboard…</p>
+    return <p className="p-4 text-sm" style={{ color: '#8B8FAD' }}>Opening your round dashboard…</p>
   }
 
   const confirmed = detail.entries.filter((e) => e.stakeStatus === 'CONFIRMED').length
 
   return (
     <div className="mx-auto w-full max-w-xl p-4 sm:p-6">
-      <button onClick={onBack} className="mb-6 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" /> Back
+      {/* Back */}
+      <button
+        onClick={onBack}
+        className="mb-5 flex items-center gap-2 text-sm transition-colors"
+        style={{ color: '#8B8FAD' }}
+        onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#F0F2FF'}
+        onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#8B8FAD'}
+      >
+        <ArrowLeft className="size-4" /> Back to discover
       </button>
 
-      <span className="inline-flex items-center rounded bg-muted px-2 py-1 font-mono text-[10px]">{detail.category} · {detail.status}</span>
-      <h1 className="mt-3 text-3xl sm:text-4xl font-semibold">{detail.title}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Hosted by {detail.host.displayName ?? formatAddress(detail.host.nimiqAddress)}</p>
+      {/* Header */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
+          style={{ background: '#252847', color: '#8B8FAD' }}>{detail.category}</span>
+        <span className="rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
+          style={{ background: 'rgba(33,188,165,0.12)', color: '#21BCA5' }}>{detail.status}</span>
+      </div>
 
-      <div className="mt-4 grid gap-3 grid-cols-3">
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Stake</p>
-          <p className="mt-1 font-mono text-xl font-bold">{Number(detail.stakeAmount)} NIM</p>
+      <h1 className="mt-3 text-2xl font-bold sm:text-3xl">{detail.title}</h1>
+      <p className="mt-1 text-sm" style={{ color: '#8B8FAD' }}>
+        Hosted by <span style={{ color: '#F0F2FF' }}>{detail.host.displayName ?? formatAddress(detail.host.nimiqAddress)}</span>
+      </p>
+
+      {/* Stats cards */}
+      <div className="mt-5 grid grid-cols-3 gap-3">
+        <div className="rounded-2xl p-4 card-3d" style={{ background: '#1A1D35', border: '1px solid #2F3355' }}>
+          <p className="text-[11px] font-semibold" style={{ color: '#8B8FAD' }}>Stake</p>
+          <p className="mt-1 font-mono text-lg font-bold sm:text-xl" style={{ color: '#E9B213' }}>{Number(detail.stakeAmount)} NIM</p>
         </div>
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Questions</p>
-          <p className="mt-1 font-mono text-xl font-bold">{detail.questionCount}</p>
+        <div className="rounded-2xl p-4 card-3d" style={{ background: '#1A1D35', border: '1px solid #2F3355' }}>
+          <p className="text-[11px] font-semibold" style={{ color: '#8B8FAD' }}>Questions</p>
+          <p className="mt-1 font-mono text-lg font-bold sm:text-xl" style={{ color: '#F0F2FF' }}>{detail.questionCount}</p>
         </div>
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Players</p>
-          <p className="mt-1 font-mono text-xl font-bold">{confirmed}/{detail.maxPlayers}</p>
+        <div className="rounded-2xl p-4 card-3d" style={{ background: '#1A1D35', border: '1px solid #2F3355' }}>
+          <p className="text-[11px] font-semibold" style={{ color: '#8B8FAD' }}>Players</p>
+          <p className="mt-1 font-mono text-lg font-bold sm:text-xl" style={{ color: '#21BCA5' }}>{confirmed}/{detail.maxPlayers}</p>
         </div>
       </div>
 
-      <div className="mt-4 rounded-xl border bg-card p-4">
-        <div className="flex items-start gap-2">
-          <ShieldCheck className="mt-0.5 size-5 text-primary shrink-0" />
-          <p className="text-sm text-muted-foreground">
-            Stake goes directly to the host wallet. Host pays winners. All txs verifiable on-chain.
-          </p>
-        </div>
+      {/* Trust banner */}
+      <div className="mt-4 flex items-start gap-3 rounded-2xl p-4 text-xs" style={{ background: 'rgba(33,188,165,0.06)', border: '1px solid rgba(33,188,165,0.2)' }}>
+        <ShieldCheck className="mt-0.5 size-4 shrink-0" style={{ color: '#21BCA5' }} />
+        <p style={{ color: '#8B8FAD' }}>
+          Stakes are transferred securely on-chain. Winners are paid immediately upon round completion.
+        </p>
       </div>
 
-      {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+      {error && <p className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.2)' }}>{error}</p>}
 
       {(() => {
-        // Check if this user already has an entry in the round
         const myEntry = userId ? detail.entries.find((e) => e.playerId === userId) : null
 
         if (myEntry?.stakeStatus === 'CONFIRMED') {
-          // Already paid and confirmed — show "go to lobby"
           return (
-            <div className="mt-6">
-              <div className="flex items-center gap-3 rounded-xl bg-primary/10 border border-primary/20 p-4">
-                <Check className="size-5 text-primary shrink-0" />
+            <div className="mt-6 flex flex-col gap-3">
+              <div className="flex items-center gap-3 rounded-2xl p-4" style={{ background: 'rgba(33,188,165,0.1)', border: '1px solid rgba(33,188,165,0.3)' }}>
+                <Check className="size-5 shrink-0" style={{ color: '#21BCA5' }} />
                 <div>
-                  <p className="text-sm font-semibold">You're in!</p>
-                  <p className="text-xs text-muted-foreground">Your stake of {Number(detail.stakeAmount)} NIM is confirmed.</p>
+                  <p className="text-sm font-semibold" style={{ color: '#21BCA5' }}>You're in the round!</p>
+                  <p className="text-xs" style={{ color: '#8B8FAD' }}>Your stake of {Number(detail.stakeAmount)} NIM is confirmed.</p>
                 </div>
               </div>
-              <Button onClick={onGoToLobby} className="mt-3 h-12 w-full">
-                Go to lobby <ChevronRight className="ml-1 size-4" />
-              </Button>
+              <button onClick={onGoToLobby} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold btn-gold gold-glow">
+                Go to lobby <ChevronRight className="size-4" />
+              </button>
             </div>
           )
         }
 
         if (myEntry?.stakeStatus === 'PENDING') {
-          // Payment sent but not confirmed yet
           return (
-            <div className="mt-6">
-              <div className="flex items-center gap-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 p-4">
-                <Clock3 className="size-5 text-yellow-500 shrink-0" />
+            <div className="mt-6 flex flex-col gap-3">
+              <div className="flex items-center gap-3 rounded-2xl p-4" style={{ background: 'rgba(233,178,19,0.1)', border: '1px solid rgba(233,178,19,0.3)' }}>
+                <Clock3 className="size-5 shrink-0" style={{ color: '#E9B213' }} />
                 <div>
-                  <p className="text-sm font-semibold">Payment processing</p>
-                  <p className="text-xs text-muted-foreground">Your payment is being verified. This usually takes a few seconds.</p>
+                  <p className="text-sm font-semibold" style={{ color: '#E9B213' }}>Payment processing</p>
+                  <p className="text-xs" style={{ color: '#8B8FAD' }}>Verifying on Nimiq network. Takes a few seconds.</p>
                 </div>
               </div>
-              <Button onClick={onGoToLobby} variant="outline" className="mt-3 h-12 w-full">
-                Go to lobby <ChevronRight className="ml-1 size-4" />
-              </Button>
+              <button onClick={onGoToLobby} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold" style={{ background: '#252847', border: '1px solid #2F3355', color: '#F0F2FF' }}>
+                Go to lobby <ChevronRight className="size-4" />
+              </button>
             </div>
           )
         }
 
-        // Not joined yet — show pay button
         return (
           <>
-            <Button
+            <button
               disabled={busy || (detail.status !== 'OPEN' && detail.status !== 'IN_PROGRESS') || sdkState !== 'connected'}
               onClick={onJoin}
-              className="mt-6 h-12 w-full"
+              className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all btn-gold gold-glow disabled:opacity-50"
             >
-              {busy ? 'Joining…' : `Pay ${Number(detail.stakeAmount)} NIM & join`}
-            </Button>
+              <Zap className="size-4" />
+              {busy ? 'Processing payment…' : `Pay ${Number(detail.stakeAmount)} NIM & join`}
+            </button>
             {sdkState !== 'connected' && (
-              <p className="mt-3 text-xs text-muted-foreground text-center">
-                Connect your wallet inside Nimiq Pay to join this round.
+              <p className="mt-3 text-center text-xs" style={{ color: '#8B8FAD' }}>
+                Open inside <span style={{ color: '#E9B213' }}>Nimiq Pay</span> to join and stake NIM.
               </p>
             )}
           </>

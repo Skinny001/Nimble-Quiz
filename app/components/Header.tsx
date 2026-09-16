@@ -1,57 +1,60 @@
 'use client'
 
+import Link from 'next/link'
 import { Bell } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { formatAddress } from '@/lib/nimiq'
 
 interface HeaderProps {
   address: string | null;
   sdkState: 'connecting' | 'connected' | 'browser';
-  onWalletClick: () => void;
-  unreadNotifications?: number;
-  onBellClick?: () => void;
+  notificationCount: number;
+  onNotificationsClick: () => void;
 }
 
-export default function Header({ address, sdkState, onWalletClick, unreadNotifications = 0, onBellClick }: HeaderProps) {
+export default function Header({ address, sdkState, notificationCount, onNotificationsClick }: HeaderProps) {
+  const short = address ? formatAddress(address) : null
+
   return (
-    <header className="flex items-center justify-between border-b border-border pb-4 mb-4">
-      <button onClick={() => window.location.href = '/'} className="flex items-center gap-3 text-left">
-        <img
-          src="/logo.png"
-          alt="Nimble Quiz"
-          className="size-9 rounded-xl"
-          width={36}
-          height={36}
-        />
-        <span>
-          <span className="block font-mono text-sm font-bold tracking-tight">NIMBLE</span>
-          <span className="block font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">quiz protocol</span>
-        </span>
-      </button>
-      <div className="flex items-center gap-3">
-        <div className="hidden sm:flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-xs">
-          <span className={`size-2 rounded-full ${sdkState === 'connected' ? 'bg-primary' : 'bg-accent'}`} />
-          {sdkState === 'connected'
-            ? `Connected ${address ? formatAddress(address) : ''}`
-            : sdkState === 'browser'
-            ? 'Preview mode'
-            : 'Connecting wallet'}
+    <header className="sticky top-0 z-30 flex items-center justify-between px-3 py-2.5 sm:px-6 sm:py-3" style={{ background: 'rgba(13,15,31,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(47,51,85,0.7)' }}>
+      {/* Logo */}
+      <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-85">
+        <img src="/logo.png" alt="Nimble Quiz Logo" className="h-7 sm:h-8 w-auto object-contain" />
+        <span className="text-sm font-bold tracking-tight sm:text-base">Nimble Quiz</span>
+      </Link>
+
+      {/* Right side */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* SDK / Address badge */}
+        <div className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] sm:text-xs font-medium"
+          style={{ background: 'rgba(37,40,71,0.8)', border: '1px solid rgba(47,51,85,0.8)' }}>
+          <span className="relative flex size-1.5 shrink-0">
+            <span className={`absolute inline-flex h-full w-full rounded-full ${sdkState === 'connected' ? 'animate-ping' : ''}`}
+              style={{ background: sdkState === 'connected' ? '#21BCA5' : sdkState === 'browser' ? '#E9B213' : '#8B8FAD', opacity: 0.75 }} />
+            <span className="relative inline-flex size-1.5 rounded-full"
+              style={{ background: sdkState === 'connected' ? '#21BCA5' : sdkState === 'browser' ? '#E9B213' : '#8B8FAD' }} />
+          </span>
+          <span className="truncate max-w-[110px] sm:max-w-none" style={{ color: '#8B8FAD' }}>
+            {sdkState === 'connecting' ? 'Connecting…' : short ?? 'Preview'}
+          </span>
         </div>
-        <button onClick={onBellClick} aria-label="Notifications" className="relative rounded-full border border-border p-2.5 text-muted-foreground hover:bg-muted">
-          <Bell className="size-4" />
-          {unreadNotifications > 0 && (
-            <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground ring-2 ring-background">
-              {unreadNotifications > 9 ? '9+' : unreadNotifications}
+
+        {/* Notifications bell */}
+        <button
+          onClick={onNotificationsClick}
+          className="relative flex size-8 sm:size-9 items-center justify-center rounded-xl transition-all"
+          style={{ background: 'rgba(37,40,71,0.8)', border: '1px solid rgba(47,51,85,0.8)' }}
+          aria-label="Notifications"
+        >
+          <Bell className="size-4" style={{ color: '#8B8FAD' }} />
+          {notificationCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full text-[10px] font-bold"
+              style={{ background: '#E9B213', color: '#0D0F1F' }}>
+              {notificationCount > 9 ? '9+' : notificationCount}
             </span>
           )}
-        </button>
-        <button onClick={onWalletClick} className="flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-3 text-sm font-medium">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-secondary font-mono text-[10px]">
-            {address ? formatAddress(address).slice(0, 4) : '??'}
-          </span>
-          <span className="hidden sm:inline">{address ? formatAddress(address) : 'Wallet'}</span>
         </button>
       </div>
     </header>
   )
 }
+

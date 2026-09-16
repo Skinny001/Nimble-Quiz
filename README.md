@@ -1,6 +1,6 @@
 # Nimble Quiz Protocol ⚡️
 
-Nimble Quiz is a fast, decentralized, and highly interactive multiplayer trivia mini-app built for the **Nimiq Pay** ecosystem. Players can stake real testnet NIM to join trivia rounds, compete in real-time, and win the entire pot!
+Nimble Quiz is a fast, decentralized, and highly interactive multiplayer quiz mini-app built for the **Nimiq Pay** ecosystem. Players can stake real testnet NIM to join quiz rounds, compete in real-time, and win the entire pot!
 
 Built using **Next.js**, **Prisma**, **Supabase**, and the **@nimiq/mini-app-sdk**, this app showcases how to build fully functional, Web3-integrated mini-apps that run flawlessly inside Nimiq Pay.
 
@@ -18,7 +18,7 @@ sequenceDiagram
     participant Player
 
     %% Phase 1: Creation
-    Host->>Nimble App: Create new trivia round
+    Host->>Nimble App: Create new quiz round
     Nimble App-->>Host: Generate unique Invite Link
 
     %% Phase 2: Joining & Staking

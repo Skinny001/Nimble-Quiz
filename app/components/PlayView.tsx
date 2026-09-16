@@ -1,8 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { Clock3, ChevronRight, Check, Zap, Trophy } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Clock3, Check, Zap, Trophy } from 'lucide-react'
 import { formatAddress } from '@/lib/nimiq'
 
 type CurrentQuestion = {
@@ -22,56 +20,61 @@ interface PlayViewProps {
 }
 
 export default function PlayView({
-  currentQ,
-  selectedOpt,
-  setSelectedOpt,
-  correctOptionIndex,
-  timeLeft,
-  detail,
-  leaderboard,
-  busy,
-  onAnswer,
+  currentQ, selectedOpt, setSelectedOpt, correctOptionIndex, timeLeft, detail, leaderboard, busy, onAnswer,
 }: PlayViewProps) {
   const opts = Array.isArray(currentQ?.options) ? currentQ.options : []
 
   if (!currentQ) return (
-    <div className="mx-auto w-full max-w-xl p-4 sm:p-6 text-center text-muted-foreground">
+    <div className="mx-auto w-full max-w-xl p-6 text-center" style={{ color: '#8B8FAD' }}>
       Loading question…
     </div>
   )
 
+  const total = currentQ.totalQuestions || 1
+  const pct = (timeLeft / (detail?.timePerQuestionSeconds ?? 20)) * 100
+  const timerColor = timeLeft > 8 ? '#E9B213' : timeLeft > 4 ? '#EC991C' : '#EF4444'
+
   return (
     <div className="mx-auto w-full max-w-xl p-4 sm:p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Question {(currentQ.orderIndex ?? 0) + 1} of {currentQ.totalQuestions}
-        </p>
-        <div className="flex items-center gap-2 rounded-full bg-secondary px-4 py-2 font-mono text-sm font-bold">
-          <Clock3 className="size-4 text-primary" />
+      {/* Progress + timer row */}
+      <div className="mb-5 flex items-center justify-between gap-3">
+        {/* Question progress bar */}
+        <div className="flex-1">
+          <div className="mb-1 flex justify-between text-[11px]" style={{ color: '#8B8FAD' }}>
+            <span>Question {(currentQ.orderIndex ?? 0) + 1} of {total}</span>
+            <span>{Math.round(((currentQ.orderIndex ?? 0) / total) * 100)}%</span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ background: '#2F3355' }}>
+            <div className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${((currentQ.orderIndex ?? 0) / total) * 100}%`, background: 'linear-gradient(90deg,#E9B213,#EC991C)' }} />
+          </div>
+        </div>
+
+        {/* Timer */}
+        <div className="flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 font-mono text-sm font-bold"
+          style={{ background: '#1A1D35', border: `1px solid ${timerColor}40`, color: timerColor,
+            boxShadow: `0 0 12px ${timerColor}20` }}>
+          <Clock3 className="size-4" />
           {String(timeLeft).padStart(2, '0')}s
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card p-4 sm:p-6">
-        <h1 className="text-lg sm:text-xl font-semibold">{currentQ.prompt}</h1>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      {/* Question card */}
+      <div className="rounded-2xl p-5 sm:p-7" style={{ background: '#1A1D35', border: '1px solid #2F3355', transform: 'perspective(800px) rotateX(1deg)' }}>
+        <h1 className="text-base font-semibold leading-snug sm:text-lg">{currentQ.prompt}</h1>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
           {opts.map((a: string, i: number) => {
-            let className = "relative flex items-center justify-between rounded-xl border p-4 text-left transition-all "
-            
+            let bg = '#252847'
+            let border = '#2F3355'
+            let color = '#F0F2FF'
+
             if (correctOptionIndex !== null) {
-              if (i === correctOptionIndex) {
-                className += "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400 font-bold"
-              } else if (i === selectedOpt) {
-                className += "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400"
-              } else {
-                className += "opacity-50"
-              }
-            } else {
-              if (selectedOpt === i) {
-                className += "border-primary bg-primary/5 ring-1 ring-primary"
-              } else {
-                className += "hover:bg-secondary/50"
-              }
+              if (i === correctOptionIndex) { bg = 'rgba(33,188,165,0.15)'; border = '#21BCA5'; color = '#21BCA5' }
+              else if (i === selectedOpt) { bg = 'rgba(239,68,68,0.12)'; border = '#EF4444'; color = '#EF4444' }
+              else { bg = 'rgba(37,40,71,0.5)'; border = 'transparent'; color = '#8B8FAD' }
+            } else if (selectedOpt === i) {
+              bg = 'rgba(233,178,19,0.1)'; border = '#E9B213'; color = '#E9B213'
             }
 
             return (
@@ -83,43 +86,50 @@ export default function PlayView({
                   setSelectedOpt(i)
                   onAnswer(false, i)
                 }}
-                className={className}
+                className="relative flex items-center gap-3 rounded-xl p-4 text-left transition-all"
+                style={{ background: bg, border: `1px solid ${border}`, color,
+                  transform: selectedOpt === null ? 'perspective(400px)' : undefined,
+                  boxShadow: selectedOpt === i && correctOptionIndex === null ? '0 0 16px rgba(233,178,19,0.15)' : undefined }}
+                onMouseEnter={e => { if (!busy && selectedOpt === null) { (e.currentTarget as HTMLElement).style.background = 'rgba(37,40,71,0.9)'; (e.currentTarget as HTMLElement).style.borderColor = '#E9B213' } }}
+                onMouseLeave={e => { if (!busy && selectedOpt === null) { (e.currentTarget as HTMLElement).style.background = bg; (e.currentTarget as HTMLElement).style.borderColor = border } }}
               >
-                <div className="flex items-center gap-3">
-                  <span className="flex size-8 items-center justify-center rounded-lg bg-secondary text-xs font-bold text-muted-foreground">
-                    {String.fromCharCode(65 + i)}
-                  </span>
-                  <span className="font-medium">{a}</span>
-                </div>
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold"
+                  style={{ background: 'rgba(47,51,85,0.8)', color: '#8B8FAD' }}>
+                  {String.fromCharCode(65 + i)}
+                </span>
+                <span className="flex-1 text-sm font-medium leading-snug">{a}</span>
                 {correctOptionIndex !== null && i === correctOptionIndex && (
-                  <Check className="size-5 text-green-500" />
+                  <Check className="size-5 shrink-0" style={{ color: '#21BCA5' }} />
                 )}
               </button>
             )
           })}
         </div>
-        
+
         {busy && (
-          <div className="mt-6 flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground animate-pulse">
-            <Zap className="size-4 text-primary" />
-            Submitting answer...
+          <div className="mt-5 flex items-center justify-center gap-2 text-sm font-medium animate-pulse" style={{ color: '#E9B213' }}>
+            <Zap className="size-4" />
+            Submitting answer…
           </div>
         )}
       </div>
 
+      {/* Live standings */}
       {leaderboard.length > 0 && (
-        <div className="mt-4 rounded-xl border bg-card p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Trophy className="size-4 text-primary" />
+        <div className="mt-4 rounded-2xl p-4" style={{ background: '#1A1D35', border: '1px solid #2F3355' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Trophy className="size-4" style={{ color: '#E9B213' }} />
             <h3 className="text-sm font-semibold">Live standings</h3>
           </div>
-          {leaderboard.map((l: any) => (
-            <div key={l.playerId} className="flex items-center justify-between border-t py-2 text-sm">
-              <span className="flex-1">
-                {l.player?.displayName ?? formatAddress(l.player?.nimiqAddress ?? l.playerId)}
-                <span className="ml-2 font-mono text-primary">· {l.correctCount} ✓</span>
-              </span>
-              <span className="font-mono text-muted-foreground">{(l.totalTime / 1000).toFixed(1)}s</span>
+          {leaderboard.map((l: any, i: number) => (
+            <div key={l.playerId} className="flex items-center justify-between py-2 text-sm"
+              style={{ borderTop: i > 0 ? '1px solid #2F3355' : undefined }}>
+              <div className="flex items-center gap-2">
+                <span className="flex size-5 items-center justify-center rounded text-[10px] font-bold"
+                  style={{ background: i === 0 ? '#E9B213' : '#252847', color: i === 0 ? '#0D0F1F' : '#8B8FAD' }}>{i + 1}</span>
+                <span>{l.player?.displayName ?? formatAddress(l.player?.nimiqAddress ?? l.playerId)}</span>
+              </div>
+              <span className="font-mono text-xs" style={{ color: '#E9B213' }}>{l.correctCount} ✓</span>
             </div>
           ))}
         </div>
