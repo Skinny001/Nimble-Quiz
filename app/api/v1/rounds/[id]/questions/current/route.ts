@@ -27,14 +27,22 @@ export async function GET(
       return NextResponse.json({ error: 'Not a confirmed participant' }, { status: 403 })
     }
 
-    if (round.status !== 'IN_PROGRESS' || !round.startedAt) {
+    if (round.status !== 'IN_PROGRESS') {
       if (round.status === 'SCORING' || round.status === 'AWAITING_PAYOUT' || round.status === 'COMPLETED') {
         return NextResponse.json({ finished: true })
       }
       return NextResponse.json({ error: 'Round not in progress' }, { status: 400 })
     }
 
-    const elapsedMs = Date.now() - round.startedAt.getTime()
+    let startedAt = (round as any).startedAt
+    if (!startedAt) {
+      // The first player to load the play view starts the official clock!
+      // We give an 8-second buffer so all other players polling the lobby have time to sync up.
+      startedAt = new Date(Date.now() + 8000)
+      await prisma.triviaRound.update({ where: { id }, data: { startedAt } })
+    }
+
+    const elapsedMs = Date.now() - startedAt.getTime()
     const msPerQuestion = round.timePerQuestionSeconds * 1000
 
     if (elapsedMs < 0) {

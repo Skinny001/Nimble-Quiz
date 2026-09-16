@@ -40,7 +40,7 @@ export async function POST(
       return NextResponse.json({ error: 'Question not found' }, { status: 404 })
     }
 
-    const questionStartTime = round.startedAt ? round.startedAt.getTime() + (question.orderIndex * round.timePerQuestionSeconds * 1000) : Date.now()
+    const questionStartTime = (round as any).startedAt ? (round as any).startedAt.getTime() + (question.orderIndex * round.timePerQuestionSeconds * 1000) : Date.now()
     
     const existingAnswer = await prisma.answer.findUnique({
       where: { questionId_playerId: { questionId, playerId: user.id } },

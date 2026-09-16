@@ -26,8 +26,8 @@ export async function GET(
       return NextResponse.json({ error: 'Round not found' }, { status: 404 })
     }
 
-    if (round.status === 'IN_PROGRESS' && round.startedAt) {
-      const elapsedMs = Date.now() - round.startedAt.getTime()
+    if (round.status === 'IN_PROGRESS' && (round as any).startedAt) {
+      const elapsedMs = Date.now() - (round as any).startedAt.getTime()
       const totalDurationMs = round.questionCount * round.timePerQuestionSeconds * 1000
       if (elapsedMs > totalDurationMs + 2000) {
         round.status = 'SCORING'

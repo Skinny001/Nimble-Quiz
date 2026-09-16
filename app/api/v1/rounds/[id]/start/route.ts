@@ -79,14 +79,12 @@ export async function POST(
       return NextResponse.json({ error: `Need at least ${round.minPlayers} confirmed players` }, { status: 400 })
     }
 
-    const startedAt = new Date(Date.now() + 3000) // 3-second buffer for players to sync
-
     await prisma.triviaRound.update({
       where: { id },
-      data: { status: 'IN_PROGRESS', startedAt },
+      data: { status: 'IN_PROGRESS' },
     })
 
-    return NextResponse.json({ success: true, startedAt })
+    return NextResponse.json({ success: true })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

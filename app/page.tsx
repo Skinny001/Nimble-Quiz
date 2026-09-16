@@ -348,10 +348,9 @@ function Page() {
     setBusy(true); setError(null)
     try {
       await api.rounds.start(selectedId, sessionToken)
-      await loadDetail(selectedId)
       // Host stays on lobby — it shows the live leaderboard during IN_PROGRESS
     } catch (e: any) {
-      setError(e.message)
+      setError(e.message ?? 'Start failed')
     } finally {
       setBusy(false)
     }
