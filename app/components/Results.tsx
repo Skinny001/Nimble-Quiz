@@ -1,6 +1,6 @@
 'use client'
 
-import { Trophy, Info, ChevronRight, Zap } from 'lucide-react'
+import { Trophy, Info, ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatAddress } from '@/lib/nimiq'
 
@@ -13,6 +13,7 @@ interface ResultsProps {
   error: string | null;
   onPayout: (payout: any) => void;
   onHistory: () => void;
+  onBack: () => void;
 }
 
 export default function Results({
@@ -24,9 +25,18 @@ export default function Results({
   error,
   onPayout,
   onHistory,
+  onBack,
 }: ResultsProps) {
   return (
     <div className="mx-auto w-full max-w-xl p-4 sm:p-6 text-center">
+      {/* Back button */}
+      <button
+        onClick={onBack}
+        className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ChevronLeft className="size-4" />
+        Back to discover
+      </button>
       <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
         <Trophy className="size-7" />
       </div>

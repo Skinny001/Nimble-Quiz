@@ -221,10 +221,11 @@ function Page() {
           setBusy(true)
           try {
             await api.rounds.finish(selectedId, sessionToken)
-            await loadDetail(selectedId)
           } catch {}
           setBusy(false)
         }
+        // Always reload detail before showing results so detail.payouts is fresh
+        if (selectedId) await loadDetail(selectedId).catch(() => {})
         setView('results')
       }
       finalize()
@@ -237,6 +238,8 @@ function Page() {
       const res: any = await api.rounds.currentQuestion(selectedId, sessionToken)
       if (res.finished) {
         try { await api.rounds.finish(selectedId, sessionToken) } catch {}
+        // Reload detail so payouts are populated before showing results
+        await loadDetail(selectedId).catch(() => {})
         setView('results')
         return
       }
@@ -529,10 +532,11 @@ function Page() {
                 error={error}
                 onPayout={handlePayout}
                 onHistory={() => setView('history')}
+                onBack={() => setView('discover')}
               />
             )}
             {view === 'history' && (
-              <HistoryView rounds={rounds} address={address} />
+              <HistoryView rounds={rounds} address={address} onBack={() => setView('discover')} />
             )}
             {view === 'wallet' && (
               <Wallet

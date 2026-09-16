@@ -29,18 +29,21 @@ export async function sendStakePayment(recipientAddress: string, amountNim: numb
   const res = await nimiq.sendBasicTransactionWithData({
     recipient: recipientAddress,
     value: amountLuna,
-    data: `round:${roundId}`,
+    data: `round:${roundId}:${Math.random().toString(36).substring(2, 6)}`,
   })
   return unwrap<string>(res, 'Stake payment rejected')
 }
 
-export async function sendPayoutPayment(recipientAddress: string, amountNim: number, roundId: string, place: string) {
+export async function sendPayoutPayment(recipientAddress: string, amountNim: number, roundId: string, payoutId: string) {
   const nimiq = await getNimiq()
   const amountLuna = Math.round(amountNim * 100000)
+  // Keep data short (Nimiq has a data byte limit). Use first 8 chars of IDs only.
+  const shortRound = roundId.replace(/-/g, '').substring(0, 8)
+  const shortPayout = payoutId.replace(/-/g, '').substring(0, 8)
   const res = await nimiq.sendBasicTransactionWithData({
     recipient: recipientAddress,
     value: amountLuna,
-    data: `payout:${roundId}:${place}`,
+    data: `po:${shortRound}:${shortPayout}`,
   })
   return unwrap<string>(res, 'Payout rejected')
 }
