@@ -66,10 +66,11 @@ async function scanForPayoutTransaction(
     const transactions = data.transactions || []
 
     for (const tx of transactions) {
-      const cleanTxSender = tx.sender.replace(/\s+/g, '')
-      const cleanHost = hostAddress.replace(/\s+/g, '')
-      const cleanTxRecipient = tx.recipient.replace(/\s+/g, '')
-      const cleanRecipient = recipientAddress.replace(/\s+/g, '')
+      const txAny = tx as any
+      const cleanTxSender = (txAny.sender || '').replace(/\s+/g, '')
+      const cleanHost = (hostAddress || '').replace(/\s+/g, '')
+      const cleanTxRecipient = (txAny.recipient || '').replace(/\s+/g, '')
+      const cleanRecipient = (recipientAddress || '').replace(/\s+/g, '')
 
       if (cleanTxSender === cleanHost &&
           cleanTxRecipient === cleanRecipient &&

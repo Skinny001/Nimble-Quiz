@@ -122,16 +122,16 @@ async function verifyPayoutTransaction(
     const response = await fetch(txUrl(txHash))
     if (!response.ok) return { success: false, error: 'Transaction not found on chain' }
 
-    const tx = await response.json()
+    const tx: any = await response.json()
 
-    const cleanTxSender = tx.sender.replace(/\s+/g, '')
-    const cleanHostAddress = hostAddress.replace(/\s+/g, '')
+    const cleanTxSender = (tx.sender || '').replace(/\s+/g, '')
+    const cleanHostAddress = (hostAddress || '').replace(/\s+/g, '')
     if (cleanTxSender !== cleanHostAddress) {
       return { success: false, error: 'Transaction sender does not match host' }
     }
 
-    const cleanTxRecipient = tx.recipient.replace(/\s+/g, '')
-    const cleanRecipientAddress = recipient.nimiqAddress.replace(/\s+/g, '')
+    const cleanTxRecipient = (tx.recipient || '').replace(/\s+/g, '')
+    const cleanRecipientAddress = (recipient.nimiqAddress || '').replace(/\s+/g, '')
     if (cleanTxRecipient !== cleanRecipientAddress) {
       return { success: false, error: 'Transaction recipient does not match winner' }
     }

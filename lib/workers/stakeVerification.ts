@@ -56,8 +56,9 @@ async function scanForStakeTransaction(
     const transactions = data.transactions || []
 
     for (const tx of transactions) {
-      if (tx.recipient.replace(/\s+/g, '') === hostAddress.replace(/\s+/g, '') &&
-          tx.sender.replace(/\s+/g, '') === playerAddress.replace(/\s+/g, '') &&
+      const txAny = tx as any
+      if ((txAny.recipient || '').replace(/\s+/g, '') === (hostAddress || '').replace(/\s+/g, '') &&
+          (txAny.sender || '').replace(/\s+/g, '') === (playerAddress || '').replace(/\s+/g, '') &&
           tx.value === amountLuna &&
           tx.data?.includes(`round:${roundId}`)) {
 
