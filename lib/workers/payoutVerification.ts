@@ -66,8 +66,13 @@ async function scanForPayoutTransaction(
     const transactions = data.transactions || []
 
     for (const tx of transactions) {
-      if (tx.sender === hostAddress &&
-          tx.recipient === recipientAddress &&
+      const cleanTxSender = tx.sender.replace(/\s+/g, '')
+      const cleanHost = hostAddress.replace(/\s+/g, '')
+      const cleanTxRecipient = tx.recipient.replace(/\s+/g, '')
+      const cleanRecipient = recipientAddress.replace(/\s+/g, '')
+
+      if (cleanTxSender === cleanHost &&
+          cleanTxRecipient === cleanRecipient &&
           tx.value === expectedLuna) {
 
         const existing = await prisma.payout.findFirst({ where: { txHash: tx.hash } })

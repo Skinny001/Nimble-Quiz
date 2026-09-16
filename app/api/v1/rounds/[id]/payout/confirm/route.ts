@@ -124,11 +124,15 @@ async function verifyPayoutTransaction(
 
     const tx = await response.json()
 
-    if (tx.sender !== hostAddress) {
+    const cleanTxSender = tx.sender.replace(/\s+/g, '')
+    const cleanHostAddress = hostAddress.replace(/\s+/g, '')
+    if (cleanTxSender !== cleanHostAddress) {
       return { success: false, error: 'Transaction sender does not match host' }
     }
 
-    if (tx.recipient !== recipient.nimiqAddress) {
+    const cleanTxRecipient = tx.recipient.replace(/\s+/g, '')
+    const cleanRecipientAddress = recipient.nimiqAddress.replace(/\s+/g, '')
+    if (cleanTxRecipient !== cleanRecipientAddress) {
       return { success: false, error: 'Transaction recipient does not match winner' }
     }
 
