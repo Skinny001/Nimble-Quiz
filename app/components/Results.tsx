@@ -31,8 +31,8 @@ export default function Results({
   onHistory,
   onBack,
 }: ResultsProps) {
-  const pendingPayouts = (detail?.payouts ?? []).filter((p: any) => p.status !== 'CONFIRMED')
-  const confirmedPayouts = (detail?.payouts ?? []).filter((p: any) => p.status === 'CONFIRMED')
+  const pendingPayouts = (detail?.payouts ?? []).filter((p: any) => p.status === 'PENDING')
+  const confirmedPayouts = (detail?.payouts ?? []).filter((p: any) => p.status !== 'PENDING')
   const showPayouts =
     detail &&
     detail.isHost &&
@@ -141,8 +141,10 @@ export default function Results({
                   </span>
                   <span className="text-xs text-muted-foreground">{Number(p.amount)} NIM</span>
                 </div>
-                {p.status === 'CONFIRMED' ? (
-                  <span className="text-xs font-bold text-primary">Paid ✓</span>
+                {p.status !== 'PENDING' ? (
+                  <span className="text-xs font-bold text-primary">
+                    {p.status === 'CONFIRMED' ? 'Paid ✓' : 'Sent ✓'}
+                  </span>
                 ) : (
                   <Button
                     disabled={busy}

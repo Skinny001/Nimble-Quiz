@@ -46,7 +46,10 @@ export async function POST(
         continue
       }
 
-      const payout = await prisma.payout.findUnique({ where: { id: payoutId } })
+      const payout = await prisma.payout.findUnique({
+        where: { id: payoutId },
+        include: { recipient: true },
+      })
       if (!payout || payout.roundId !== id) {
         results.push({ payoutId, success: false, error: 'Payout not found' })
         continue
@@ -57,6 +60,10 @@ export async function POST(
         continue
       }
 
+      // Best-effort on-chain verification.
+      // If the tx isn't indexed yet, mark as SENT (not CONFIRMED) so the UI
+      // shows "Paid" immediately and a background worker confirms it later.
+      // Only hard-reject on clear fraud (wrong sender/recipient/amount when tx IS found).
       const verified = await verifyPayoutTransaction(
         txHash,
         round.host.nimiqAddress,
@@ -64,35 +71,59 @@ export async function POST(
         Number(payout.amount)
       )
 
-      if (!verified.success) {
+      if (verified.hardReject) {
         results.push({ payoutId, success: false, error: verified.error })
         continue
       }
 
+      // Mark as SENT immediately; background worker will upgrade to CONFIRMED
+      const newStatus = verified.confirmed ? 'CONFIRMED' : 'SENT'
+
       await prisma.$transaction(async (tx) => {
         await tx.payout.update({
           where: { id: payoutId },
-          data: { txHash, status: 'CONFIRMED', confirmedAt: new Date() },
+          data: {
+            txHash,
+            status: newStatus,
+            ...(newStatus === 'CONFIRMED' ? { confirmedAt: new Date() } : {}),
+          },
         })
 
+        // Notify the winner
+        const isRefund = round.payouts.length > 1 &&
+          round.payouts.every(p => Number(p.amount) === Number(round.payouts[0].amount))
         await tx.notification.create({
           data: {
             userId: payout.recipientId,
-            title: 'Prize Received!',
-            message: `You received ${Number(payout.amount)} NIM for winning "${round.title}".`,
+            title: isRefund ? 'Stake Refunded!' : 'Prize Received!',
+            message: isRefund
+              ? `Your ${Number(payout.amount)} NIM stake was refunded for "${round.title}".`
+              : `You received ${Number(payout.amount)} NIM for winning "${round.title}".`,
+            type: 'PAYOUT',
+          },
+        })
+
+        // Notify the host that this payment was sent
+        await tx.notification.create({
+          data: {
+            userId: round.hostId,
+            title: 'Payment Sent',
+            message: `You sent ${Number(payout.amount)} NIM to ${payout.recipient.displayName ?? payout.recipient.nimiqAddress.slice(0, 10) + '…'} for "${round.title}".`,
             type: 'PAYOUT',
           },
         })
       })
 
-      results.push({ payoutId, success: true })
+      results.push({ payoutId, success: true, status: newStatus })
     }
 
-    const allConfirmed = await prisma.payout.findMany({
-      where: { roundId: id, status: { not: 'CONFIRMED' } },
+    // Mark round COMPLETED once all payouts have a txHash submitted
+    // (don't wait for blockchain confirmation — the background worker handles that)
+    const stillPending = await prisma.payout.findMany({
+      where: { roundId: id, txHash: null },
     })
 
-    if (allConfirmed.length === 0) {
+    if (stillPending.length === 0) {
       await prisma.triviaRound.update({
         where: { id },
         data: { status: 'COMPLETED' },
@@ -114,36 +145,42 @@ async function verifyPayoutTransaction(
   hostAddress: string,
   recipientId: string,
   expectedAmount: number
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ confirmed?: boolean; hardReject?: boolean; error?: string }> {
   try {
     const recipient = await prisma.user.findUnique({ where: { id: recipientId } })
-    if (!recipient) return { success: false, error: 'Recipient not found' }
+    if (!recipient) return { hardReject: true, error: 'Recipient not found' }
 
-    const response = await fetch(txUrl(txHash))
-    if (!response.ok) return { success: false, error: 'Transaction not found on chain' }
+    const response = await fetch(txUrl(txHash), { signal: AbortSignal.timeout(2500) })
+
+    // Tx not indexed yet — allow as SENT, background worker will confirm later
+    if (!response.ok) {
+      console.warn(`[payout-confirm] tx ${txHash} not yet indexed (${response.status}), marking SENT`)
+      return { confirmed: false }
+    }
 
     const tx: any = await response.json()
 
-    const cleanTxSender = (tx.sender || '').replace(/\s+/g, '')
-    const cleanHostAddress = (hostAddress || '').replace(/\s+/g, '')
-    if (cleanTxSender !== cleanHostAddress) {
-      return { success: false, error: 'Transaction sender does not match host' }
+    const cleanSender = (tx.sender || '').replace(/\s+/g, '')
+    const cleanHost = (hostAddress || '').replace(/\s+/g, '')
+    if (cleanSender !== cleanHost) {
+      return { hardReject: true, error: 'Transaction sender does not match host' }
     }
 
-    const cleanTxRecipient = (tx.recipient || '').replace(/\s+/g, '')
-    const cleanRecipientAddress = (recipient.nimiqAddress || '').replace(/\s+/g, '')
-    if (cleanTxRecipient !== cleanRecipientAddress) {
-      return { success: false, error: 'Transaction recipient does not match winner' }
+    const cleanRecipient = (tx.recipient || '').replace(/\s+/g, '')
+    const cleanWinner = (recipient.nimiqAddress || '').replace(/\s+/g, '')
+    if (cleanRecipient !== cleanWinner) {
+      return { hardReject: true, error: 'Transaction recipient does not match winner' }
     }
 
     const expectedLuna = Math.round(expectedAmount * 100000)
     if (tx.value !== expectedLuna) {
-      return { success: false, error: `Amount mismatch: expected ${expectedLuna} luna, got ${tx.value}` }
+      return { hardReject: true, error: `Amount mismatch: expected ${expectedLuna} luna, got ${tx.value}` }
     }
 
-    return { success: true }
+    return { confirmed: true }
   } catch (error) {
-    console.error('Payout verification error:', error)
-    return { success: false, error: 'Failed to verify transaction' }
+    // Network/timeout — treat as not indexed yet, allow as SENT
+    console.warn('[payout-confirm] verification timeout, marking SENT:', error)
+    return { confirmed: false }
   }
 }

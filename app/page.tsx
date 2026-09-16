@@ -247,6 +247,7 @@ function Page() {
       setCurrentQ(res.question)
       setSelectedOpt(null)
       setCorrectOptionIndex(null)
+      pendingCorrectRef.current = null // clear any pending reveal from previous question
       setTimeLeft(res.timeRemaining ?? 20)
     } catch (e: any) {
       setError(e.message)
@@ -259,6 +260,8 @@ function Page() {
 
   // timer
   const answeredRef = useRef(false)
+  // Store the correct answer index until the timer expires — don't reveal early
+  const pendingCorrectRef = useRef<number | null>(null)
   useEffect(() => {
     answeredRef.current = selectedOpt !== null
   }, [selectedOpt])
@@ -266,11 +269,16 @@ function Page() {
   useEffect(() => {
     if (view !== 'play' || !currentQ) return
     if (timerRef.current) clearInterval(timerRef.current)
+    pendingCorrectRef.current = null // reset for new question
     timerRef.current = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
           if (timerRef.current) clearInterval(timerRef.current)
           if (!answeredRef.current) handleAnswer(true)
+          // Reveal the correct answer now that time is up
+          if (pendingCorrectRef.current !== null) {
+            setCorrectOptionIndex(pendingCorrectRef.current)
+          }
           loadQuestion()
           return 0
         }
@@ -305,12 +313,14 @@ function Page() {
   const handleAnswer = async (expired = false, forcedOpt?: number) => {
     if (!selectedId || !sessionToken || !currentQ || busy) return
     const opt = expired ? -1 : (forcedOpt !== undefined ? forcedOpt : selectedOpt)
-    if (opt === null || opt === undefined) return
+    // Block manual submit if no option is selected and timer hasn't expired
+    if (!expired && (opt === null || opt === undefined || opt === -1)) return
     setBusy(true)
     try {
-      const res: any = await api.rounds.submitAnswer(selectedId, currentQ.id, opt, sessionToken)
+      const res: any = await api.rounds.submitAnswer(selectedId, currentQ.id, opt ?? -1, sessionToken)
       if (res.correctOptionIndex !== undefined) {
-        setCorrectOptionIndex(res.correctOptionIndex)
+        // Don't reveal immediately — store it and reveal when timer hits zero
+        pendingCorrectRef.current = res.correctOptionIndex
       }
     } catch (e: any) {
       // Ignore "Already answered" if it was sent automatically
