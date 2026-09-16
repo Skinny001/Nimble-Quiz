@@ -213,6 +213,13 @@ function Page() {
     }
   }, [view, detailStatus, detailIsHost, detailHostId, userId])
 
+  // auto-advance host (or AFK players) to results when the round finishes
+  useEffect(() => {
+    if (view === 'lobby' && (detailStatus === 'SCORING' || detailStatus === 'AWAITING_PAYOUT' || detailStatus === 'COMPLETED')) {
+      setView('results')
+    }
+  }, [view, detailStatus])
+
   const loadQuestion = useCallback(async () => {
     if (!selectedId || !sessionToken) return
     try {
