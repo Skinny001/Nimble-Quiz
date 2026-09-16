@@ -84,6 +84,7 @@ function Page() {
   const [leaderboard, setLeaderboard] = useState<any[]>([])
   const [pot, setPot] = useState(0)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const [payAllProgress, setPayAllProgress] = useState<{ current: number; total: number } | null>(null)
 
   // 1. SDK init + auth
   useEffect(() => {
@@ -428,6 +429,39 @@ function Page() {
     }
   }
 
+  const handlePayAll = async () => {
+    if (!selectedId || !sessionToken || !detail || !detail.isHost) return
+    const pending = (detail.payouts ?? []).filter((p: any) => p.status !== 'CONFIRMED')
+    if (pending.length === 0) return
+
+    setBusy(true)
+    setError(null)
+    setPayAllProgress({ current: 0, total: pending.length })
+
+    for (let i = 0; i < pending.length; i++) {
+      const payout = pending[i]
+      setPayAllProgress({ current: i + 1, total: pending.length })
+      try {
+        // Each call awaits the Nimiq approval popup before proceeding
+        const txHash: any = await sendPayoutPayment(
+          payout.recipient.nimiqAddress,
+          Number(payout.amount),
+          selectedId,
+          payout.id
+        )
+        const hash = typeof txHash === 'string' ? txHash : (txHash?.hash ?? String(txHash))
+        await api.rounds.payoutConfirm(selectedId, [{ payoutId: payout.id, txHash: hash }], sessionToken)
+        await loadDetail(selectedId) // refresh UI after each payment
+      } catch (e: any) {
+        setError(`Payment ${i + 1}/${pending.length} failed: ${e.message ?? 'Payout failed'}. Remaining payouts still pending.'`)
+        break // stop on rejection — remaining payouts stay pending for retry
+      }
+    }
+
+    setPayAllProgress(null)
+    setBusy(false)
+  }
+
   const copyInvite = async () => {
     if (!selectedId) return
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -531,6 +565,8 @@ function Page() {
                 busy={busy}
                 error={error}
                 onPayout={handlePayout}
+                onPayAll={handlePayAll}
+                payAllProgress={payAllProgress}
                 onHistory={() => setView('history')}
                 onBack={() => setView('discover')}
               />
