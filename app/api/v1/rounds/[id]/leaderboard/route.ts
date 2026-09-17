@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { finalizeRound } from '@/lib/scoring'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,12 +27,18 @@ export async function GET(
       return NextResponse.json({ error: 'Round not found' }, { status: 404 })
     }
 
-    if (round.status === 'IN_PROGRESS' && (round as any).startedAt) {
-      const elapsedMs = Date.now() - (round as any).startedAt.getTime()
-      const totalDurationMs = round.questionCount * round.timePerQuestionSeconds * 1000
-      if (elapsedMs > totalDurationMs + 2000) {
-        round.status = 'SCORING'
-        await prisma.triviaRound.update({ where: { id }, data: { status: 'SCORING' } })
+    if (round.status === 'IN_PROGRESS' || round.status === 'SCORING') {
+      const startedAt = (round as any).startedAt
+      const activeSeconds = round.timePerQuestionSeconds || 20
+      const intermissionSeconds = 5
+      const totalSlotMs = round.questionCount * (activeSeconds + intermissionSeconds) * 1000
+      const elapsedMs = startedAt ? Date.now() - startedAt.getTime() : 0
+
+      if (round.status === 'SCORING' || (startedAt && elapsedMs > totalSlotMs)) {
+        const finalized = await finalizeRound(id)
+        if (finalized) {
+          round.status = finalized.status
+        }
       }
     }
 

@@ -31,6 +31,9 @@ export async function GET(
 
     if (round.status !== 'IN_PROGRESS') {
       if (round.status === 'SCORING' || round.status === 'AWAITING_PAYOUT' || round.status === 'COMPLETED') {
+        if (round.status === 'SCORING') {
+          await finalizeRound(id)
+        }
         return NextResponse.json({ finished: true })
       }
       return NextResponse.json({ error: 'Round not in progress' }, { status: 400 })
@@ -69,52 +72,7 @@ export async function GET(
 
     if (currentIndex >= round.questions.length) {
       // Auto-finalize round immediately when time for all questions expires
-      if (round.status === 'IN_PROGRESS' || round.status === 'SCORING') {
-        const entriesWithAnswers = round.entries.map((entry) => {
-          const answers = round.answers.filter((a) => a.playerId === entry.playerId)
-          return { ...entry, answers }
-        })
-
-        const leaderboard = computeLeaderboard(entriesWithAnswers)
-        const isZeroScore = leaderboard.length > 0 && leaderboard.every((l) => l.correctCount === 0)
-
-        let winners: any[] = []
-        let payouts: any[] = []
-        let nextStatus: 'AWAITING_PAYOUT' | 'COMPLETED' = 'COMPLETED'
-
-        if (isZeroScore) {
-          payouts = round.entries.map((e) => ({
-            recipientId: e.playerId,
-            amount: Number(round.stakeAmount),
-          }))
-          nextStatus = payouts.length > 0 ? 'AWAITING_PAYOUT' : 'COMPLETED'
-        } else {
-          winners = determineWinners(leaderboard, round.payoutRule)
-          const pot = Number(round.stakeAmount) * entriesWithAnswers.length
-          payouts = computePayouts(winners, pot, round.payoutRule)
-          nextStatus = payouts.length > 0 ? 'AWAITING_PAYOUT' : 'COMPLETED'
-        }
-
-        await prisma.$transaction(async (tx) => {
-          await tx.triviaRound.update({
-            where: { id },
-            data: { status: nextStatus },
-          })
-
-          if (payouts.length > 0) {
-            await tx.payout.deleteMany({ where: { roundId: id } })
-            await tx.payout.createMany({
-              data: payouts.map((p) => ({
-                roundId: id,
-                recipientId: p.recipientId,
-                amount: p.amount,
-                status: 'PENDING',
-              })),
-            })
-          }
-        })
-      }
-
+      await finalizeRound(id)
       return NextResponse.json({ finished: true })
     }
 

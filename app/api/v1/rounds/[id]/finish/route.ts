@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
-import { computeLeaderboard, determineWinners, computePayouts } from '@/lib/scoring'
+import { computeLeaderboard, finalizeRound } from '@/lib/scoring'
 
 export async function POST(
   req: NextRequest,
@@ -43,45 +43,13 @@ export async function POST(
       return NextResponse.json({ error: 'Not all players have finished' }, { status: 400 })
     }
 
-    if (round.status === 'COMPLETED' || round.status === 'AWAITING_PAYOUT') {
-      const leaderboard = computeLeaderboard(entriesWithAnswers)
-      return NextResponse.json({ success: true, alreadyFinished: true, leaderboard })
-    }
-
+    const finalizedRound = await finalizeRound(id)
     const leaderboard = computeLeaderboard(entriesWithAnswers)
-    const winners = determineWinners(leaderboard, round.payoutRule)
-    const pot = Number(round.stakeAmount) * entriesWithAnswers.length
-    const payouts = computePayouts(winners, pot, round.payoutRule)
-
-    await prisma.$transaction(async (tx) => {
-      await tx.triviaRound.update({
-        where: { id },
-        data: { status: payouts.length > 0 ? 'AWAITING_PAYOUT' : 'COMPLETED' },
-      })
-
-      if (payouts.length > 0) {
-        await tx.payout.createMany({
-          data: payouts.map(p => ({
-            roundId: id,
-            recipientId: p.recipientId,
-            amount: p.amount,
-            status: 'PENDING',
-          })),
-        })
-      }
-    })
 
     return NextResponse.json({
       success: true,
       leaderboard,
-      winners: winners.map(w => ({
-        ...w,
-        payout: payouts.find(p => p.recipientId === w.playerId)?.amount || 0,
-      })),
-      payouts: payouts.map(p => ({
-        recipientId: p.recipientId,
-        amount: p.amount,
-      })),
+      payouts: finalizedRound?.payouts ?? [],
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {

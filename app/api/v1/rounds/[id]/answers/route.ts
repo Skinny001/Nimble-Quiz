@@ -99,9 +99,7 @@ async function checkRoundComplete(roundId: string) {
   )
 
   if (allPlayersDone.every(done => done)) {
-    await prisma.triviaRound.update({
-      where: { id: roundId },
-      data: { status: 'SCORING' },
-    })
+    const { finalizeRound } = await import('@/lib/scoring')
+    await finalizeRound(roundId)
   }
 }
