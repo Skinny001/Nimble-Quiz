@@ -17,11 +17,23 @@ export default function Wallet({ address, userId, sdkState, error }: WalletProps
   useEffect(() => {
     if (!address) return
     let active = true
-    fetch(`/api/v1/wallet/balance/${address}`)
-      .then(res => res.json())
-      .then(data => { if (active) setBalance(typeof data.balance === 'number' ? data.balance : 0) })
-      .catch(() => {})
-    return () => { active = false }
+
+    const loadBalance = () => {
+      fetch(`/api/v1/wallet/balance/${address}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (active) setBalance(typeof data.balance === 'number' ? data.balance : 0)
+        })
+        .catch(() => {})
+    }
+
+    loadBalance()
+    const interval = setInterval(loadBalance, 3000)
+
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
   }, [address])
 
   return (

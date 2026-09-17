@@ -82,6 +82,8 @@ function Page() {
   const [selectedOpt, setSelectedOpt] = useState<number | null>(null)
   const [correctOptionIndex, setCorrectOptionIndex] = useState<number | null>(null)
   const [timeLeft, setTimeLeft] = useState(20)
+  const [isIntermission, setIsIntermission] = useState(false)
+  const [intermissionTimeLeft, setIntermissionTimeLeft] = useState(5)
   const [leaderboard, setLeaderboard] = useState<any[]>([])
   const [pot, setPot] = useState(0)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
@@ -217,47 +219,61 @@ function Page() {
 
   // auto-advance host (or AFK players) to results when the round finishes
   useEffect(() => {
-    if (view === 'lobby' && (detailStatus === 'SCORING' || detailStatus === 'AWAITING_PAYOUT' || detailStatus === 'COMPLETED')) {
+    if ((view === 'lobby' || view === 'play') && (detailStatus === 'SCORING' || detailStatus === 'AWAITING_PAYOUT' || detailStatus === 'COMPLETED')) {
       const finalize = async () => {
-        if (detailStatus === 'SCORING' && selectedId && sessionToken) {
-          setBusy(true)
-          try {
-            await api.rounds.finish(selectedId, sessionToken)
-          } catch {}
-          setBusy(false)
-        }
-        // Always reload detail before showing results so detail.payouts is fresh
         if (selectedId) await loadDetail(selectedId).catch(() => {})
         setView('results')
       }
       finalize()
     }
-  }, [view, detailStatus, selectedId, sessionToken, loadDetail])
+  }, [view, detailStatus, selectedId, loadDetail])
+
+  const lastQuestionIdRef = useRef<string | null>(null)
 
   const loadQuestion = useCallback(async () => {
     if (!selectedId || !sessionToken) return
     try {
       const res: any = await api.rounds.currentQuestion(selectedId, sessionToken)
       if (res.finished) {
-        try { await api.rounds.finish(selectedId, sessionToken) } catch {}
-        // Reload detail so payouts are populated before showing results
         await loadDetail(selectedId).catch(() => {})
         setView('results')
         return
       }
-      setCurrentQ(res.question)
-      setSelectedOpt(null)
-      setCorrectOptionIndex(null)
-      pendingCorrectRef.current = null // clear any pending reveal from previous question
-      setTimeLeft(res.timeRemaining ?? 20)
+
+      if (res.isIntermission) {
+        setIsIntermission(true)
+        setIntermissionTimeLeft(res.intermissionTimeLeft ?? 5)
+        if (res.correctOptionIndex !== undefined && res.correctOptionIndex !== null) {
+          setCorrectOptionIndex(res.correctOptionIndex)
+        }
+      } else {
+        setIsIntermission(false)
+        if (lastQuestionIdRef.current !== res.question.id) {
+          lastQuestionIdRef.current = res.question.id
+          setSelectedOpt(null)
+          setCorrectOptionIndex(null)
+        }
+        setCurrentQ(res.question)
+        setTimeLeft(res.timeRemaining ?? 20)
+      }
     } catch (e: any) {
       setError(e.message)
     }
-  }, [selectedId, sessionToken])
+  }, [selectedId, sessionToken, loadDetail])
 
   useEffect(() => {
-    if (view === 'play' && selectedId && sessionToken) loadQuestion()
-  }, [view, selectedId, loadQuestion])
+    if (view !== 'play' || !selectedId || !sessionToken) return
+    let active = true
+
+    const syncPoll = async () => {
+      if (!active) return
+      await loadQuestion()
+      if (active) setTimeout(syncPoll, 1500)
+    }
+
+    syncPoll()
+    return () => { active = false }
+  }, [view, selectedId, sessionToken, loadQuestion])
 
   // timer
   const answeredRef = useRef(false)
@@ -560,6 +576,8 @@ function Page() {
                 setSelectedOpt={setSelectedOpt}
                 correctOptionIndex={correctOptionIndex}
                 timeLeft={timeLeft}
+                isIntermission={isIntermission}
+                intermissionTimeLeft={intermissionTimeLeft}
                 detail={detail}
                 leaderboard={leaderboard}
                 busy={busy}

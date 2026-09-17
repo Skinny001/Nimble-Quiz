@@ -44,7 +44,8 @@ export async function POST(
     }
 
     if (round.status === 'COMPLETED' || round.status === 'AWAITING_PAYOUT') {
-      return NextResponse.json({ error: 'Round already finished' }, { status: 400 })
+      const leaderboard = computeLeaderboard(entriesWithAnswers)
+      return NextResponse.json({ success: true, alreadyFinished: true, leaderboard })
     }
 
     const leaderboard = computeLeaderboard(entriesWithAnswers)
