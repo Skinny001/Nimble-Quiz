@@ -1,7 +1,7 @@
 # ⚡ Nimble Quiz — Real-Time Multiplayer Web3 Trivia Powered by Nimiq Pay
 
 <p align="center">
-  <img src="public/vecteezy_logo-icon-3d.png" alt="Nimble Quiz Logo" width="180" style="border-radius: 16px; box-shadow: 0 10px 30px rgba(233,178,19,0.3);" />
+  <img src="public/logo.png" alt="Nimble Quiz Logo" width="220" style="border-radius: 16px; box-shadow: 0 10px 30px rgba(233,178,19,0.3);" />
 </p>
 
 <p align="center">
@@ -22,7 +22,12 @@
 - [Inspiration & Problem](#-inspiration--problem)
 - [The Solution: Nimble Quiz](#-the-solution-nimble-quiz)
 - [Key Features](#-key-features)
-- [Detailed User Flows & Sequence Diagram](#-detailed-user-flows--sequence-diagram)
+- [Detailed User Flows](#-detailed-user-flows)
+  - [Flow 1: Host Creating & Sharing Round](#flow-1-host-creating--sharing-round)
+  - [Flow 2: Player Staking & Joining via Nimiq Pay SDK](#flow-2-player-staking--joining-via-nimiq-pay-sdk)
+  - [Flow 3: Synchronized Live Gameplay & Intermissions](#flow-3-synchronized-live-gameplay--intermissions)
+  - [Flow 4: Sub-Second Auto-Finalization & Batch Payouts](#flow-4-sub-second-auto-finalization--batch-payouts)
+- [Sequence Architecture Diagram](#-sequence-architecture-diagram)
 - [Architecture & Tech Stack](#-architecture--tech-stack)
 - [Synchronized Intermission Engine & Sub-Second Scoring](#-synchronized-intermission-engine--sub-second-scoring)
 - [Environment Variables](#-environment-variables)
@@ -61,7 +66,7 @@ Trivia and quiz games attract over **500 million active players** globally on We
 ### 1. 🎯 Custom Round Creation & 3D Social Invites
 * **Custom Quiz Parameters**: Set custom category (*Computers, Sports, General Knowledge*), question count, time limits (10-30s), and entry stake in NIM.
 * **Payout Rules**: Choose between **Winner Take All** or **Top 3 Distributed (50% / 30% / 20%)**.
-* **3D Social Share Modal**: Instant share buttons with custom branding for **X (Twitter)**, **Telegram**, and **WhatsApp** linking directly to `/join/[id]`.
+* **3D Social Share Modal**: Instant share buttons with custom branding for **X (Twitter)** and **Telegram** linking directly to `/join/[id]`.
 
 ### 2. ⚡ Frictionless Nimiq Pay Staking
 * **Native Webview Integration**: Automatically hooks into the Nimiq Pay app context.
@@ -83,7 +88,34 @@ Trivia and quiz games attract over **500 million active players** globally on We
 
 ---
 
-## 🗺️ Detailed User Flows & Sequence Diagram
+## 🗺️ Detailed User Flows
+
+### Flow 1: Host Creating & Sharing Round
+1. The Host navigates to **Create Round**, chooses a quiz title, category, stake amount (e.g. 10 NIM), and payout distribution rule (*Winner Take All* or *Top 3*).
+2. The server creates the round and generates a unique invite link (`/join/[id]`).
+3. The Host opens the **3D Social Share Modal** to tweet the match on **X (Twitter)** or post it directly to **Telegram** groups.
+
+### Flow 2: Player Staking & Joining via Nimiq Pay SDK
+1. The Player opens the invite link directly inside Nimiq Pay mobile app or browser.
+2. The Player clicks **"Pay Stake & Join"**. The app triggers `sendStakePayment` via `@nimiq/mini-app-sdk`.
+3. The Nimiq Pay wallet drawer pops up; the Player confirms the transaction in 1 tap.
+4. The backend verifies the transaction hash on-chain and updates the Player's status to `CONFIRMED`. The live lobby updates confirmed player count.
+
+### Flow 3: Synchronized Live Gameplay & Intermissions
+1. The Host clicks **Start Game**. All players enter `PlayView.tsx`.
+2. A 3-2-1 countdown synchronizes the start clock across all clients.
+3. Each question runs for the active duration (e.g. 20s) followed by a **5-second Intermission**.
+4. During the intermission, the server reveals `correctOptionIndex` for visual green highlighting and updates live leaderboard standings.
+
+### Flow 4: Sub-Second Auto-Finalization & Batch Payouts
+1. The moment the final question timer expires, `finalizeRound(roundId)` executes inline on the server (< 1 second).
+2. The leaderboard ranks are saved, and `Payout` records with status `PENDING` are inserted into the database.
+3. The Host's view updates to **Results**, displaying the **"Pay All"** control.
+4. The Host clicks **"Pay All"**. The Nimiq Pay SDK sequentially triggers winner payouts (`sendPayoutPayment`), updating each payout status to `SENT` / `CONFIRMED`.
+
+---
+
+## 🔄 Sequence Architecture Diagram
 
 ```mermaid
 sequenceDiagram
@@ -95,7 +127,7 @@ sequenceDiagram
 
     %% Phase 1: Round Creation & Invite
     Host->>App: Create Round (e.g. 10 NIM, Winner Take All)
-    App-->>Host: Generate 3D Social Invite Links (X / Telegram / WhatsApp)
+    App-->>Host: Generate 3D Social Invite Links (X / Telegram)
 
     %% Phase 2: Joining & Staking
     Player->>App: Open /join/[id] link
