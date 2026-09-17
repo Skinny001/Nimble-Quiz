@@ -600,7 +600,22 @@ function Page() {
               />
             )}
             {view === 'history' && (
-              <HistoryView rounds={rounds} address={address} onBack={() => setView('discover')} />
+              <HistoryView
+                rounds={rounds}
+                address={address}
+                onBack={() => setView('discover')}
+                onRoundClick={(r, isHost) => {
+                  setSelectedId(r.id)
+                  setDetail(null)
+                  if (r.status === 'COMPLETED' || r.status === 'AWAITING_PAYOUT' || r.status === 'SCORING') {
+                    setView('results')
+                  } else if (isHost) {
+                    setView('lobby')
+                  } else {
+                    setView('detail')
+                  }
+                }}
+              />
             )}
             {view === 'wallet' && (
               <Wallet

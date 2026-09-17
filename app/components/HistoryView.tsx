@@ -1,7 +1,6 @@
 'use client'
 
-import { Trophy, ChevronLeft, Users } from 'lucide-react'
-import { formatAddress } from '@/lib/nimiq'
+import { Trophy, ChevronLeft, Users, ChevronRight } from 'lucide-react'
 
 type RoundListItem = {
   id: string; title: string; category: string; stakeAmount: number | string;
@@ -13,6 +12,7 @@ interface HistoryViewProps {
   rounds: RoundListItem[];
   address: string | null;
   onBack: () => void;
+  onRoundClick: (round: RoundListItem, isHost: boolean) => void;
 }
 
 const statusLabel: Record<string, { label: string; color: string; bg: string }> = {
@@ -23,15 +23,19 @@ const statusLabel: Record<string, { label: string; color: string; bg: string }> 
   OPEN: { label: 'Open', color: '#8B8FAD', bg: 'rgba(37,40,71,0.8)' },
 }
 
-export default function HistoryView({ rounds, address, onBack }: HistoryViewProps) {
+export default function HistoryView({ rounds, address, onBack, onRoundClick }: HistoryViewProps) {
   const hostedRounds = rounds.filter((r: any) => r.host?.nimiqAddress === address)
   const joinedRounds = rounds.filter((r: any) => r.host?.nimiqAddress !== address)
 
   const RoundCard = ({ r, role }: { r: RoundListItem; role: 'host' | 'player' }) => {
     const st = statusLabel[r.status] ?? { label: r.status, color: '#8B8FAD', bg: '#252847' }
     return (
-      <div className="card-3d rounded-2xl p-4 sm:p-5 text-left" style={{ background: '#1A1D35', border: '1px solid #2F3355' }}>
-        <div className="flex items-center gap-3">
+      <button
+        onClick={() => onRoundClick(r, role === 'host')}
+        className="card-3d flex w-full items-center justify-between gap-3 rounded-2xl p-4 sm:p-5 text-left transition-all hover:border-[#E9B213]"
+        style={{ background: '#1A1D35', border: '1px solid #2F3355' }}
+      >
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <span
             className="flex size-10 shrink-0 items-center justify-center rounded-xl"
             style={{ background: role === 'host' ? 'rgba(233,178,19,0.12)' : 'rgba(33,188,165,0.12)', color: role === 'host' ? '#E9B213' : '#21BCA5' }}
@@ -50,14 +54,17 @@ export default function HistoryView({ rounds, address, onBack }: HistoryViewProp
               {r.category} · <span style={{ color: '#E9B213', fontWeight: 600 }}>{Number(r.stakeAmount)} NIM</span> · {r.questionCount} Qs
             </p>
           </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
           <span
-            className="shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide"
+            className="rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide"
             style={{ background: st.bg, color: st.color }}
           >
             {st.label}
           </span>
+          <ChevronRight className="size-4" style={{ color: '#8B8FAD' }} />
         </div>
-      </div>
+      </button>
     )
   }
 
@@ -80,7 +87,7 @@ export default function HistoryView({ rounds, address, onBack }: HistoryViewProp
       <div className="mb-6">
         <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-widest" style={{ color: '#E9B213' }}>Your activity</p>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">My rounds</h1>
-        <p className="mt-1.5 text-sm" style={{ color: '#8B8FAD' }}>A transparent record of every game, stake, and payout.</p>
+        <p className="mt-1.5 text-sm" style={{ color: '#8B8FAD' }}>Click any round to view full winner results and leaderboard details.</p>
       </div>
 
       {allEmpty && (
