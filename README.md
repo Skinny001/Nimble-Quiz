@@ -1,130 +1,227 @@
-# Nimble Quiz Protocol ⚡️
+# ⚡ Nimble Quiz — Real-Time Multiplayer Web3 Trivia Powered by Nimiq Pay
 
-Nimble Quiz is a fast, decentralized, and highly interactive multiplayer quiz mini-app built for the **Nimiq Pay** ecosystem. Players can stake real testnet NIM to join quiz rounds, compete in real-time, and win the entire pot!
+<p align="center">
+  <img src="public/vecteezy_logo-icon-3d.png" alt="Nimble Quiz Logo" width="180" style="border-radius: 16px; box-shadow: 0 10px 30px rgba(233,178,19,0.3);" />
+</p>
 
-Built using **Next.js**, **Prisma**, **Supabase**, and the **@nimiq/mini-app-sdk**, this app showcases how to build fully functional, Web3-integrated mini-apps that run flawlessly inside Nimiq Pay.
+<p align="center">
+  <strong>The fast-paced, non-custodial Web3 trivia platform with 1-tap Nimiq Pay micro-staking, synchronized intermissions, sub-second auto-finalization, and batch winner payouts.</strong>
+</p>
+
+<p align="center">
+  <a href="#-features"><img src="https://img.shields.io/badge/Blockchain-Nimiq%20Albatross-FFC107?style=flat-square&logo=nimiq&logoColor=black" alt="Nimiq" /></a>
+  <a href="#-architecture--tech-stack"><img src="https://img.shields.io/badge/Fees-0%25%20Platform%20Fee-10B981?style=flat-square" alt="Zero Fees" /></a>
+  <a href="#-architecture--tech-stack"><img src="https://img.shields.io/badge/Security-Non--Custodial-0066FF?style=flat-square" alt="Non-Custodial" /></a>
+  <a href="#-getting-started"><img src="https://img.shields.io/badge/Framework-Next.js%2016-000000?style=flat-square&logo=next.js" alt="Next.js 16" /></a>
+  <a href="#-getting-started"><img src="https://img.shields.io/badge/Styling-Vanilla%20CSS%20%2B%203D-E9B213?style=flat-square" alt="3D CSS" /></a>
+</p>
 
 ---
 
-## 🏗 Workflow & Architecture
+## 📌 Table of Contents
+- [Inspiration & Problem](#-inspiration--problem)
+- [The Solution: Nimble Quiz](#-the-solution-nimble-quiz)
+- [Key Features](#-key-features)
+- [Detailed User Flows & Sequence Diagram](#-detailed-user-flows--sequence-diagram)
+- [Architecture & Tech Stack](#-architecture--tech-stack)
+- [Synchronized Intermission Engine & Sub-Second Scoring](#-synchronized-intermission-engine--sub-second-scoring)
+- [Environment Variables](#-environment-variables)
+- [Getting Started](#-getting-started)
+- [Judge Presentation & Video Script Guides](#-judge-presentation--video-script-guides)
+- [License](#-license)
 
-The app follows a Host-Player model where a Host creates a round, and Players stake NIM to join. The Host then starts the round, and players answer questions in real-time. Finally, the Host distributes the payouts to the winners.
+---
+
+## 💡 Inspiration & Problem
+
+Trivia and quiz games attract over **500 million active players** globally on Web2 platforms like Kahoot! and Trivia Crack. However, traditional Web2 trivia platforms rely on centralized points with zero real-world value, while existing Web3 trivia applications suffer from severe friction:
+
+1. **Painful Wallet Friction**: Players are forced to export seed phrases, switch RPC networks, and approve multiple complex wallet popups for every action.
+2. **Agonizing Settlement Delays**: Players routinely wait 3 to 10 minutes (or days) after a match for background crons to calculate scores and issue payouts.
+3. **Unsynchronized Question Reveals**: Variable mobile network latencies lead to unfair advantages, where players on faster connections receive answers seconds before others.
+4. **Manual Host Payout Bottlenecks**: Organizers must manually sign and submit individual crypto transactions for every winner in a round.
+
+---
+
+## ⚡ The Solution: Nimble Quiz
+
+**Nimble Quiz** re-imagines competitive trivia into a seamless, high-velocity Web3 experience running natively inside **Nimiq Pay**.
+
+* **0% Platform Fees**: 100% of the pooled NIM stake goes directly to the round winners.
+* **Native 1-Tap Nimiq Pay Micro-Staking**: Instant, seedless wallet connection and entry fee deposits powered by `@nimiq/mini-app-sdk`.
+* **5-Second Intermission Reveal Engine**: Server-synchronized question slots reveal correct answers simultaneously to all players, eliminating latency cheats.
+* **Sub-Second Inline Auto-Finalization**: Zero wait time! Scores and `Payout` records compute inline in `< 1 second` as soon as the final question timer expires.
+* **Batch "Pay All" Host Execution**: Hosts disburse prize pots to all winning wallets with a single tap.
+* **Real-Time In-App Wallet Ledger**: Verified on-chain balance calculations and match history tracking (`My Rounds`).
+
+---
+
+## 🚀 Key Features
+
+### 1. 🎯 Custom Round Creation & 3D Social Invites
+* **Custom Quiz Parameters**: Set custom category (*Computers, Sports, General Knowledge*), question count, time limits (10-30s), and entry stake in NIM.
+* **Payout Rules**: Choose between **Winner Take All** or **Top 3 Distributed (50% / 30% / 20%)**.
+* **3D Social Share Modal**: Instant share buttons with custom branding for **X (Twitter)**, **Telegram**, and **WhatsApp** linking directly to `/join/[id]`.
+
+### 2. ⚡ Frictionless Nimiq Pay Staking
+* **Native Webview Integration**: Automatically hooks into the Nimiq Pay app context.
+* **1-Tap Staking Intent**: Pre-populates recipient address and NIM amount; confirms on-chain in seconds.
+
+### 3. ⏱️ Synchronized Gameplay & Intermission Engine
+* **Fair Question Slots**: Calculated as `activeSeconds + 5s intermission`.
+* **Revealed Answers**: Highlights correct options in green during intermissions without revealing answers early.
+* **Dynamic Time-Decay Scoring**: Faster correct submissions earn maximum points on the live leaderboard.
+
+### 4. 🏆 Sub-Second Finalization & Batch Host Payouts
+* **Instant Inline Settlement**: Round status updates instantly from `IN_PROGRESS` to `AWAITING_PAYOUT` with zero cron delay.
+* **1-Tap Batch "Pay All"**: Host executes sequential Nimiq Pay SDK payouts with live progress tracking (`Paying 1/2...`, `Paid ✓`).
+* **Zero-Score Protection**: If no player answers correctly, 100% of stakes are refunded automatically.
+
+### 5. 💼 In-App Wallet & Transaction History
+* **Live Ledger Balance**: Displays real-time confirmed NIM balances via background transaction polling.
+* **My Rounds History**: Clickable round cards to view past match standings, player scores, and payout transaction hashes.
+
+---
+
+## 🗺️ Detailed User Flows & Sequence Diagram
 
 ```mermaid
 sequenceDiagram
-    participant Host
-    participant Nimble App
-    participant Nimiq Blockchain
-    participant Player
+    autonumber
+    actor Host
+    actor Player
+    participant App as Nimble Quiz App
+    participant Nimiq as Nimiq Pay SDK / Blockchain
 
-    %% Phase 1: Creation
-    Host->>Nimble App: Create new quiz round
-    Nimble App-->>Host: Generate unique Invite Link
+    %% Phase 1: Round Creation & Invite
+    Host->>App: Create Round (e.g. 10 NIM, Winner Take All)
+    App-->>Host: Generate 3D Social Invite Links (X / Telegram / WhatsApp)
 
     %% Phase 2: Joining & Staking
-    Player->>Nimble App: Open Invite Link (via Nimiq Pay)
-    Nimble App->>Player: Prompt to stake entry fee
-    Player->>Nimiq Blockchain: Send NIM stake to Host's address
-    Nimiq Blockchain-->>Nimble App: Confirm transaction
-    Nimble App-->>Player: Successfully joined round
+    Player->>App: Open /join/[id] link
+    Player->>Nimiq: Tap "Pay Stake & Join" via Nimiq Pay SDK
+    Nimiq-->>App: Confirm Transaction Hash & Update Entry Status to CONFIRMED
+    App-->>Host: Real-time Lobby updates confirmed player count
 
-    %% Phase 3: Gameplay
-    Host->>Nimble App: Start Round
-    Nimble App->>Player: Send Question 1
-    Player->>Nimble App: Submit Answer
-    Nimble App->>Player: Evaluate Answer & Update Leaderboard
-    
-    %% Phase 4: Payouts
-    Host->>Nimble App: Finish Round
-    Nimble App->>Host: Display Payout Dashboard
-    Host->>Nimiq Blockchain: Send NIM payouts to Winners
-    Nimiq Blockchain-->>Nimble App: Confirm Payouts
-    Nimble App-->>Player: Send Winner Notification
+    %% Phase 3: Synchronized Gameplay
+    Host->>App: Start Round
+    loop For Each Question
+        App->>Player: Synchronized Question Slot (20s countdown)
+        Player->>App: Submit Answer with response time
+        App->>Player: 5-Sec Intermission Reveal (Correct answer + Live Leaderboard)
+    end
+
+    %% Phase 4: Sub-Second Auto-Finalization & Payouts
+    App->>App: Auto-finalize scores inline (< 1s) & generate Payout records
+    App-->>Host: Render Results View with "Pay All" & "Pay" Controls
+    Host->>Nimiq: Click "Pay All" (Batch send NIM payouts)
+    Nimiq-->>Player: Instant NIM payout received in wallet!
 ```
 
 ---
 
-## 🚀 Features
+## 🏗 Architecture & Tech Stack
 
-- **Nimiq Pay Integration:** Automatically hooks into the Nimiq Pay webview using `@nimiq/mini-app-sdk`.
-- **Real-time Staking:** Players stake NIM to enter; transactions are verified on-chain.
-- **Dynamic Leaderboard:** Real-time scoring based on speed and accuracy.
-- **In-App Notifications:** Real-time bell notifications for joining rounds and receiving payouts.
-- **Wallet Dashboard:** Users can check their connected Nimiq wallet balance directly within the app.
-
----
-
-## 🛠 Tech Stack
-
-- **Frontend:** Next.js 14 (App Router), React, TailwindCSS, Shadcn UI
-- **Backend:** Next.js API Routes, Prisma ORM
-- **Database:** PostgreSQL (hosted on Supabase)
-- **Web3 / Blockchain:** Nimiq Testnet, `@nimiq/mini-app-sdk`
+| Layer | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Frontend Framework** | **Next.js 16 (Turbopack)** | Server/Client components, App Router, dynamic routing |
+| **Styling & Aesthetics** | **Vanilla CSS + 3D UI** | Glassmorphism, 3D card tilts, custom brand palettes |
+| **Database ORM** | **Prisma 5.22** | Type-safe schema for `TriviaRound`, `Entry`, `Answer`, `Payout` |
+| **Database Provider** | **PostgreSQL (Supabase)** | Hosted relational database with connection pooling |
+| **Blockchain Integration**| **@nimiq/mini-app-sdk** | Native wallet connection, stake intent, payout signatures |
+| **Sync Engine** | **Slot-Offset Calculation** | Server-computed time slots preventing client clock drift |
 
 ---
 
-## 💻 Getting Started (Local Development)
+## ⚡ Synchronized Intermission Engine & Sub-Second Scoring
 
-### 1. Clone the repository
-```bash
-git clone https://github.com/your-username/nimble-quiz.git
-cd nimble-quiz
+### Server Slot Computation
+Each question operates inside a deterministic time slot:
+$$\text{Slot Duration} = \text{TimePerQuestion} + 5\text{s Intermission}$$
+
+- During `Offset < TimePerQuestion`: Options are active; answers can be submitted. Correct answer indexes remain hidden on the server.
+- During `Offset >= TimePerQuestion`: The 5-second intermission timer fires; `correctOptionIndex` is returned to reveal answer highlighting.
+
+### Inline Finalization Transaction
+When all questions complete, the backend executes `finalizeRound(roundId)` inline inside the API request:
+
+```ts
+await prisma.$transaction(async (tx) => {
+  await tx.triviaRound.update({
+    where: { id: roundId },
+    data: { status: 'AWAITING_PAYOUT' },
+  })
+
+  await tx.payout.createMany({
+    data: payouts.map((p) => ({
+      roundId,
+      recipientId: p.recipientId,
+      amount: p.amount,
+      status: 'PENDING',
+    })),
+  })
+})
 ```
+This guarantees **zero wait time (< 1 sec)** for the Host to view results and execute payouts!
 
-### 2. Install dependencies
-We recommend using `pnpm` (as configured in the project):
-```bash
-pnpm install
-```
+---
 
-### 3. Environment Variables
-Create a `.env` file in the root directory. **Do not use real production API keys for local testing.** Here is an example of what your `.env` should look like:
+## 🔑 Environment Variables
+
+Create a `.env` file in the project root:
 
 ```env
-# Database Configuration (Example: Supabase connection string)
-DATABASE_URL="postgresql://postgres.[YOUR-PROJECT-REF]:[YOUR-PASSWORD]@aws-0-eu-central-1.pooler.supabase.com:5432/postgres?pgbouncer=true"
+# Database Connection (Supabase / PostgreSQL)
+DATABASE_URL="postgresql://postgres.[REF]:[PASS]@aws-0-eu-central-1.pooler.supabase.com:5432/postgres?pgbouncer=true"
 
-# Nimiq Network Settings (Testnet)
+# Nimiq Network Configuration
 NIMIQ_NETWORK="testnet"
 NIMIQ_RPC_URL="https://test-albatross.nimiq.network/api"
 
-# Public Explorer (Shown in the UI)
+# Public Explorer (Used for transaction verification links)
 NEXT_PUBLIC_NIMIQ_NETWORK="testnet"
 NEXT_PUBLIC_NIMIQ_EXPLORER="https://testnet.nimiqscan.com/tx"
 
-# Cron Secret for background verification tasks
-CRON_SECRET="generate_a_random_secure_string_here"
+# Cron Verification Secret
+CRON_SECRET="your_random_cron_verification_secret"
 ```
 
-### 4. Setup the Database
-Push the Prisma schema to your PostgreSQL database to create the necessary tables:
+---
+
+## 💻 Getting Started
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/your-username/Nimble_Quiz.git
+cd Nimble_Quiz
+```
+
+### 2. Install Dependencies
+```bash
+npm install
+```
+
+### 3. Initialize Database
 ```bash
 npx prisma db push
 ```
 
-### 5. Run the Development Server
-To test the app locally using the Nimiq Pay mobile app, you must expose your local server to your local network (LAN) so your phone can connect to it:
-
+### 4. Run Development Server
 ```bash
-npm run dev:lan
-# or
-npx next dev -H 0.0.0.0
+npm run dev
 ```
-*Note: Ensure your phone and your computer are connected to the same Wi-Fi network. Then, input your computer's local IP address (e.g., `http://192.168.x.x:3000`) into the Nimiq Pay mini-app testing environment.*
+Open [http://localhost:3000](http://localhost:3000) inside your browser or Nimiq Pay simulator.
 
 ---
 
-## 📱 How to Play
+## 🎬 Judge Presentation & Video Script Guides
 
-1. **Host a Round:** Click "Create Round", select the entry fee, number of players, and category.
-2. **Invite Players:** Share the generated invite link with your friends.
-3. **Stake to Play:** Players open the link in Nimiq Pay and stake the required NIM to enter.
-4. **Start the Quiz:** Once everyone has joined, the Host clicks "Start".
-5. **Answer Fast:** Points are awarded based on how quickly you answer correctly.
-6. **Win the Pot:** When the round ends, the Host initiates the payouts. Winners receive their NIM directly to their wallets!
+For hackathon submissions and video demonstrations, refer to our dedicated guides:
+* 📄 [**DEMO_VIDEO_README.md**](file:///Users/mac/Downloads/Nimble_Quiz/DEMO_VIDEO_README.md) — 45-50s Video Production Guide & Subtitle Keypoints.
+* 📄 [**HACKATHON_JUDGE_DEMO_SCRIPT.md**](file:///Users/mac/Downloads/Nimble_Quiz/HACKATHON_JUDGE_DEMO_SCRIPT.md) — 45-50s Pitch & Voiceover Recording Script.
 
 ---
 
-## 🔒 Security
-- **No Private Keys stored:** Nimble Quiz never asks for or stores private keys. All transactions are securely signed and broadcasted by the Nimiq Pay app itself.
-- **On-Chain Verification:** Payouts and stakes are verified on the Nimiq blockchain via the backend before updating the database.
+## 📜 License
+
+Distributed under the **MIT License**. Built for the **Nimiq Ecosystem**.

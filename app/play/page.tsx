@@ -188,12 +188,12 @@ function Page() {
   }, [sessionToken])
 
   useEffect(() => {
-    if ((view === 'detail' || view === 'lobby') && selectedId) loadDetail(selectedId)
+    if ((view === 'detail' || view === 'lobby' || view === 'results') && selectedId) loadDetail(selectedId)
   }, [view, selectedId, loadDetail])
 
-  // lobby polling
+  // lobby and results polling
   useEffect(() => {
-    if (view !== 'lobby' || !selectedId) return
+    if ((view !== 'lobby' && view !== 'results') || !selectedId) return
     let active = true
     const poll = async () => {
       if (!active) return

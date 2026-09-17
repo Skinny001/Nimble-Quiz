@@ -75,6 +75,12 @@ export default function Results({
             No correct answers — stakes returned to all players
           </p>
         )}
+        {detail?.status === 'SCORING' && (
+          <div className="mt-3 flex items-center justify-center gap-2 rounded-xl p-2.5 text-xs" style={{ background: 'rgba(233,178,19,0.1)', color: '#E9B213', border: '1px solid rgba(233,178,19,0.2)' }}>
+            <div className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            <span>Finalizing payouts & winner calculations...</span>
+          </div>
+        )}
       </div>
 
       {/* Leaderboard Card */}
