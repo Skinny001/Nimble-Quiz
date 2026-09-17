@@ -1,7 +1,7 @@
 # ⚡ Nimble Quiz — Real-Time Multiplayer Web3 Trivia Powered by Nimiq Pay
 
 <p align="center">
-  <img src="public/logo.png" alt="Nimble Quiz Logo" width="220" style="border-radius: 16px; box-shadow: 0 10px 30px rgba(233,178,19,0.3);" />
+  <img src="public/vecteezy_logo-icon-3d.png" alt="Nimble Quiz Logo" width="220" style="border-radius: 16px; box-shadow: 0 10px 30px rgba(233,178,19,0.3);" />
 </p>
 
 <p align="center">
