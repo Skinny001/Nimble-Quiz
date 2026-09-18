@@ -246,11 +246,6 @@ Open [http://localhost:3000](http://localhost:3000) inside your browser or Nimiq
 
 ---
 
-## 🎬 Judge Presentation & Video Script Guides
-
-For hackathon submissions and video demonstrations, refer to our dedicated guides:
-* 📄 [**DEMO_VIDEO_README.md**](file:///Users/mac/Downloads/Nimble_Quiz/DEMO_VIDEO_README.md) — 45-50s Video Production Guide & Subtitle Keypoints.
-* 📄 [**HACKATHON_JUDGE_DEMO_SCRIPT.md**](file:///Users/mac/Downloads/Nimble_Quiz/HACKATHON_JUDGE_DEMO_SCRIPT.md) — 45-50s Pitch & Voiceover Recording Script.
 
 ---
 
